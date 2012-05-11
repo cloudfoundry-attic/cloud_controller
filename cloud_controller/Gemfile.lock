@@ -38,10 +38,10 @@ GIT
 
 GIT
   remote: git://github.com/cloudfoundry/vcap-common.git
-  revision: cbeb8a17539e8b27b7c4fa6f37a3cb6b805b0d03
-  ref: cbeb8a17
+  revision: 16c06d7f9878c228ed7569403d963d0324dffd63
+  ref: 16c06d7f98
   specs:
-    vcap_common (1.0.12)
+    vcap_common (1.0.13)
       eventmachine (~> 0.12.11.cloudfoundry.3)
       nats (~> 0.4.22.beta.8)
       posix-spawn (~> 0.3.6)
