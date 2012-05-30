@@ -96,6 +96,19 @@ describe UsersController do
         response.status.should == 204
         User.find_by_email('foo@bar.com').should_not be_nil
       end
+
+      it 'should retry once if the uaa restarts and invalidates the CC access token' do
+        UaaToken.any_instance.stubs(:access_token).raises CF::UAA::InvalidToken.new("invalid_token")
+        AppConfig[:allow_registration] = true
+        User.find_by_email('foo@bar.com').should be_nil
+        post_with_body :create do
+          { :email    => 'foo@bar.com',
+            :password => 'testpass',
+          }
+        end
+        response.status.should == 204
+        User.find_by_email('foo@bar.com').should_not be_nil
+      end
     end
 
     describe "#list" do
@@ -143,6 +156,17 @@ describe UsersController do
         response.status.should == 403
         User.find_by_email(@user.email).should_not be_nil
       end
+
+      it 'should retry once if the uaa restarts and invalidates the CC access token' do
+        UaaToken.any_instance.stubs(:access_token).raises CF::UAA::InvalidToken.new("invalid_token")
+        @admin.admin?.should be_true
+        @admin_headers.each {|key, value| request.env[key] = value}
+        delete :delete, {:email => @user.email}
+        response.status.should == 204
+        User.find_by_email(@user.email).should be_nil
+        User.find_by_email(@admin.email).should_not be_nil
+      end
+ 
     end
   end
 
