@@ -413,10 +413,15 @@ class AppsController < ApplicationController
       # This is the legacy model, we will continue to support that for now.
       if body_params[:staging][:model]
         app.framework = body_params[:staging][:model]
+        #TODO support new style with this model?
         app.runtime = body_params[:staging][:stack]
       else
         app.framework = body_params[:staging][:framework]
-        app.runtime = body_params[:staging][:runtime]
+        if runtime=body_params[:staging][:runtime]
+          #TODO handle possibility this is legacy - included in runtime_ids
+          app.runtime = StagingPlugin.runtime_id runtime
+          #TODO unless app.runtime - complain, the name was not valid and app will just set to framework default instead
+        end
       end
       app.metadata[:command] = body_params[:staging][:command] if body_params[:staging][:command]
     end
