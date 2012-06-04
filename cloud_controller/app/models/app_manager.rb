@@ -302,7 +302,7 @@ class AppManager
       raise CloudError.new(CloudError::APP_INVALID_RUNTIME, app.runtime, app.framework)
     end
 
-    env_json = app.staging_environment
+    env_json = Yajl::Encoder.encode(app.staging_environment_data)
 
     app_source_dir = Dir.mktmpdir
     app.explode_into(app_source_dir)

@@ -24,7 +24,7 @@ class DefaultController < ApplicationController
   end
 
   def runtime_info
-    render :json => AppConfig[:runtimes]
+    render :json => StagingPlugin.runtime_info
   end
 
   def service_info
