@@ -54,14 +54,6 @@ end
 
 CloudController.setup
 
-# HACK: resolves ActiveRecord/json_pure incompatibility
-# to allow an urgent rails security upgrade
-class ::Fixnum
-  def to_json(options = nil)
-    to_s
-  end
-end
-
 class HealthManager
   VERSION = 0.98
 
@@ -291,8 +283,9 @@ class HealthManager
         end
       end
 
-      if droplet_entry[:state] == STARTED
-        live_version_entry = droplet_entry[:versions][droplet_entry[:live_version]] || create_version_entry
+      # if sanity check fails, all bets are off, don't treat droplet as STARTED
+      if droplet_entry[:state] == STARTED && sanity_check(droplet_entry)
+        live_version_entry = droplet_entry[:versions][droplet_entry[:live_version]] ||= create_version_entry
 
         framework_stats = stats[:frameworks][droplet_entry[:framework]] ||= create_runtime_metrics
         runtime_stats = stats[:runtimes][droplet_entry[:runtime]] ||= create_runtime_metrics
@@ -357,6 +350,17 @@ class HealthManager
     end
   end
 
+  def sanity_check(droplet_entry)
+    # check for null staged_package_hash
+    # the live_version is in format "#{staged_package_hash}-#{run_count}",
+    # so when staged_package_hash is null, the live_version starts with '-'
+    # see method #droplet_version
+    if droplet_entry[:live_version].start_with?('-')
+      @logger.warn("Failed sanity check for live_version of droplet: #{droplet_entry}")
+      return false
+    end
+    true
+  end
 
   def prepare_analysis(collect_stats)
     @analysis = {
@@ -630,7 +634,7 @@ class HealthManager
 
   def process_status_message(message, reply)
     VCAP::Component.varz[:healthmanager_status_msgs_received] += 1
-    message_json = JSON.parse(message)
+    message_json = parse_json(message)
     droplet_id = message_json['droplet']
     droplet_entry = @droplets[droplet_id]
 
@@ -650,7 +654,7 @@ class HealthManager
             end
           end
         end
-        NATS.publish(reply, {:indices => result}.to_json)
+        NATS.publish(reply, encode_json({:indices => result}))
 
       elsif state == CRASHED
         result = []
@@ -660,7 +664,7 @@ class HealthManager
             :since => crash_entry[:crash_timestamp]
           }
         end
-        NATS.publish(reply, {:instances => result}.to_json)
+        NATS.publish(reply, encode_json({:instances => result}))
       end
     end
   end
@@ -786,7 +790,7 @@ class HealthManager
     end
 
     @logger.info("Requesting the start of missing instances: #{start_message}")
-    NATS.publish('cloudcontrollers.hm.requests', start_message.to_json)
+    NATS.publish('cloudcontrollers.hm.requests', encode_json(start_message))
   end
 
   def queue_request(message, high_priority)
@@ -803,12 +807,12 @@ class HealthManager
   def stop_instances(droplet_id, instances)
     droplet_entry = @droplets[droplet_id]
     last_updated = droplet_entry ? droplet_entry[:last_updated] : 0
-    stop_message = {
+    stop_message = encode_json({
       :droplet => droplet_id,
       :op => :STOP,
       :last_updated => last_updated,
       :instances => instances
-    }.to_json
+    })
     NATS.publish('cloudcontrollers.hm.requests', stop_message)
     @logger.info("Requesting the stop of extra instances: #{stop_message}")
   end

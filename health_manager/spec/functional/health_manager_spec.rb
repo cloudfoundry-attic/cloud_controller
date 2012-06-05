@@ -109,6 +109,19 @@ describe 'Health Manager' do
       msg['droplet'].should == app.id
     end
 
+    it 'should not start missing instances with empty staged_package_hash' do
+      app = nil
+      msg = receive_message('cloudcontrollers.hm.requests', false) do
+
+        app_def = make_app_def('non_sane_app')
+        app_def.delete(:staged_package_hash)
+
+        app = @helper.make_app_with_owner_and_instance(app_def, make_user_def)
+      end
+      app.should_not be_nil
+      msg.should be_nil
+    end
+
     #test restart crashed instances
     it 'should start crashed instances' do
       app = @helper.make_app_with_owner_and_instance(make_app_def('crasher'), make_user_def)
@@ -141,7 +154,9 @@ describe 'Health Manager' do
       :framework => 'sinatra',
       :runtime => 'ruby19',
       :state => 'STARTED',
-      :package_state => 'STAGED'
+      :package_state => 'STAGED',
+      :staged_package_hash => 'abcdefg',
+      :package_hash => 'abcdef'
     }
   end
 
@@ -155,12 +170,12 @@ describe 'Health Manager' do
     Yajl::Parser.parse(str)
   end
 
-  def receive_message(subj)
+  def receive_message(subj, expected = true)
     ret = nil
-    timeout = 10
+    timeout = 5
     EM.run do
       EM.add_timer(timeout) do
-        puts "TIMEOUT while waiting on #{subj}"
+        puts "TIMEOUT while waiting on #{subj}" if expected
         EM.stop
       end
       NATS.start :uri => @nats_server.uri do
