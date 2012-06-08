@@ -302,7 +302,7 @@ class AppManager
       raise CloudError.new(CloudError::APP_INVALID_RUNTIME, app.runtime, app.framework)
     end
 
-    env_json = app.staging_environment
+    env_json = Yajl::Encoder.encode(app.staging_environment_data)
 
     app_source_dir = Dir.mktmpdir
     app.explode_into(app_source_dir)
@@ -539,7 +539,7 @@ class AppManager
 
   def new_message
     data = {:droplet => app.id, :name => app.name, :uris => app.mapped_urls}
-    data[:runtime] = app.runtime
+    data[:runtime] = StagingPlugin.runtime(app.runtime)
     data[:framework] = app.framework
     data[:sha1] = app.staged_package_hash
     data[:executableFile] = app.resolve_staged_package_path

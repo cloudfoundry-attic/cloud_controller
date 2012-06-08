@@ -12,6 +12,8 @@ describe AppsController do
       build_admin_and_user
       @app_name = 'example_app'
       @args = {'name' => @app_name, 'staging' => {'model' => 'sinatra', 'stack' => 'ruby18' }}
+      StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+      StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
     end
 
     it 'should add the environment variable if its legal' do

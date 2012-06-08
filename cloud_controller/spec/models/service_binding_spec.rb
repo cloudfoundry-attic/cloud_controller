@@ -26,6 +26,8 @@ describe ServiceBinding do
     u.save
     u.should be_valid
 
+    StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+    StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
     a = App.new(
       :owner     => u,
       :name      => 'foobar',

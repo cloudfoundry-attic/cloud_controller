@@ -10,6 +10,8 @@ describe Route do
     @user1.save!
     @user2.save!
 
+    StagingPlugin.stubs(:runtime_ids).returns(['node'])
+    StagingPlugin.stubs(:framework_ids).returns(['node'])
     # user1 owns app1 and app2, user2 is trying to create app3
     @app1 = App.new(:name => 'app1', :owner => @user1, :framework => 'node', :runtime => 'node')
     @app2 = App.new(:name => 'app2', :owner => @user1, :framework => 'node', :runtime => 'node')

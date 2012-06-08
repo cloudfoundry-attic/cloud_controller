@@ -13,6 +13,8 @@ describe App do
       @user_a = create_user('a@foo.com', 'a')
       @user_b = create_user('b@foo.com', 'b')
 
+      StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+      StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
       @app = App.create(
         :name      => 'foobar',
         :owner     => @user_a,

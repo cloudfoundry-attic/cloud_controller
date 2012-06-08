@@ -14,6 +14,8 @@ describe BindingTokensController do
     ua.should be_valid
     @unauth_user = ua
 
+    StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+    StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
     a = App.new(
       :owner => u,
       :name => 'foobar',

@@ -473,12 +473,13 @@ describe ServicesController do
 
   describe "User facing apis" do
     before :each do
+      StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+      StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
       u = User.new(:email => 'foo@bar.com')
       u.set_and_encrypt_password('foobar')
       u.save
       u.should be_valid
       @user = u
-
       a = App.new(
         :owner => u,
         :name => 'foobar',

@@ -1,6 +1,11 @@
 require 'spec_helper'
 
 describe User do
+  before :each do
+    StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+    StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
+  end
+
   it "is valid given an email address and password" do
     user = User.new :email => "vmware@example.com"
     user.set_and_encrypt_password("password")

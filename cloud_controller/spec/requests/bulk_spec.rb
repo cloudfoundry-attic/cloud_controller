@@ -5,6 +5,8 @@ describe "bulk_api" do
   shared_examples_for "any request to the bulk api" do
     before :all do
       build_admin_and_user
+      StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+      StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
       make_a_bunch_of_apps
       @bulk_user = AppConfig[:bulk_api][:auth][:user]
       @bulk_password = AppConfig[:bulk_api][:auth][:password]
