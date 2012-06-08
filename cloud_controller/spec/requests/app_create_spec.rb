@@ -4,6 +4,8 @@ describe "Creating a new App" do
 
   shared_examples_for "any request to create a new app" do
     before do
+      StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+      StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
       build_admin_and_user
     end
 
