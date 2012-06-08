@@ -6,7 +6,7 @@ gem 'rails', '~> 3.0.13'
 gem 'nats', :require => 'nats/client'
 
 # VCAP common components
-gem 'vcap_common', :require => ['vcap/common', 'vcap/component'], :git => 'git://github.com/cloudfoundry/vcap-common.git', :ref => '2715dbdaec'
+gem 'vcap_common', :require => ['vcap/common', 'vcap/component'], :git => 'git://github.com/cloudfoundry/vcap-common.git', :ref => 'a7779114db666a1cf5eedf3fd1576c657ccafb6d'
 gem 'vcap_logging', :require => ['vcap/logging'], :git => 'git://github.com/cloudfoundry/common.git', :ref => 'e36886a1'
 gem 'vcap_staging', '~> 0.1.59', :git => 'git://github.com/cloudfoundry/vcap-staging.git', :ref => '251cb526'
 gem 'cf-uaa-client', '~> 0.2.0', :git => 'git://github.com/cloudfoundry/uaa.git', :ref => '792e7816'
