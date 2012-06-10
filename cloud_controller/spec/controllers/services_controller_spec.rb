@@ -537,6 +537,8 @@ describe ServicesController do
         shim = ServiceProvisionerStub.new
         shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
+        # CC should blocks the duplicated name provision
+        shim.expects(:provision_service).once if Process.pid == gw_pid
 
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
