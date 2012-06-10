@@ -535,8 +535,14 @@ describe ServicesController do
 
       it 'should fail to provision a config with the same name as an existing config' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
-        gw_pid = start_gateway(@svc, shim)
+
+        gw_pid = start_gateway(@svc, shim) do
+          shim.expects(:provision_service).returns({
+            :data => {},
+            :service_id => 'foo',
+            :credentials => {}
+          })
+        end
 
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
@@ -1231,7 +1237,7 @@ describe ServicesController do
     end
   end
 
-  def start_gateway(svc, shim)
+  def start_gateway(svc, shim, &blk)
     svc_info = {
       :name    => svc.name,
       :version => svc.version
@@ -1239,6 +1245,7 @@ describe ServicesController do
     uri = URI.parse(svc.url)
     gateway = VCAP::Services::SynchronousServiceGateway.new(:service => svc_info, :token => svc.token, :provisioner => shim)
     pid = Process.fork do
+      yield if block_given?
       # Prevent the subscriptions registered with the rails initializers from running when we fork the server and start it.
       # If we don't do this we run the risk of a) starting NATS if it isn't running, or b) sending messages
       # through an existing NATS server, possibly upsetting already running tests.
