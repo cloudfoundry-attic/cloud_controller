@@ -534,8 +534,13 @@ describe ServicesController do
       end
 
       it 'should fail to provision a config with the same name as an existing config' do
+        prov_handle = {:data => {}, :service_id => 'foo', :credentials => {}}
+        resp = VCAP::Services::Api::GatewayProvisionResponse.decode(prov_handle.to_json)
+
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns(prov_handle)
+        VCAP::Services::Api::GatewayProvisionResponse.expects(:decode).returns(resp).once
+
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
