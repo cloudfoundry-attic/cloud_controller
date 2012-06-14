@@ -284,7 +284,7 @@ class HealthManager
       end
 
       # if sanity check fails, all bets are off, don't treat droplet as STARTED
-      if droplet_entry[:state] == STARTED && sanity_check(droplet_entry)
+      if droplet_entry[:state] == STARTED && sanity_check(app_id, droplet_entry)
         live_version_entry = droplet_entry[:versions][droplet_entry[:live_version]] ||= create_version_entry
 
         framework_stats = stats[:frameworks][droplet_entry[:framework]] ||= create_runtime_metrics
@@ -350,13 +350,13 @@ class HealthManager
     end
   end
 
-  def sanity_check(droplet_entry)
+  def sanity_check(app_id, droplet_entry)
     # check for null staged_package_hash
     # the live_version is in format "#{staged_package_hash}-#{run_count}",
     # so when staged_package_hash is null, the live_version starts with '-'
     # see method #droplet_version
     if droplet_entry[:live_version].start_with?('-')
-      @logger.warn("Failed sanity check for live_version of droplet: #{droplet_entry}")
+      @logger.warn("Failed sanity check for live_version for app_id=#{app_id}: #{droplet_entry}")
       return false
     end
     true
