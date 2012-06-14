@@ -546,6 +546,7 @@ describe ServicesController do
         end
         response.status.should == 200
 
+        VCAP::Services::Api::ServiceGatewayClient.any_instance.expects(:provision).never
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
