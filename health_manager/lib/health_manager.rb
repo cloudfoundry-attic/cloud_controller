@@ -266,6 +266,9 @@ class HealthManager
           elsif version != droplet_entry[:live_version]
             extra_instance = true
             reason = "Live version mismatch. Live version is #{droplet_entry[:live_version]} instance version is #{version}."
+          elsif index_entry[:dea_prod] && !droplet_entry[:prod]
+            extra_instance = true
+            reason = "Prod flag mismatch. app prod flag: #{droplet_entry[:prod]}, dea prod flag: #{index_entry[:dea_prod]}"
           end
 
           if RUNNING_STATES.include?(index_entry[:state]) && extra_instance
@@ -323,7 +326,7 @@ class HealthManager
           end
 
           if index_entry[:state] == DOWN && now - index_entry[:last_action] > @restart_timeout
-            @logger.info("Preparing to restart instance (app_id=#{app_id}, index=#{index}). Reason: droplet state is STARTED, but instance state is DOWN.")
+            @logger.info("Preparing to restart instance (app_id=#{app_id}, index=#{index}). Reason: droplet state is STARTED, but instance state is DOWN. index_entry=#{index_entry}")
             index_entry[:last_action] = now
             missing_indices << index
           end
@@ -342,9 +345,11 @@ class HealthManager
       end
 
       if missing_indices.any?
+        @logger.debug {"missing_indices=#{missing_indices} detected for app_id=#{app_id}, entry=#{droplet_entry}"}
         start_instances(app_id, missing_indices)
       end
       if extra_instances.any?
+        @logger.debug {"extra_instances=#{extra_instances} detected for app_id=#{app_id}, entry=#{droplet_entry}"}
         stop_instances(app_id, extra_instances)
       end
     end
@@ -567,7 +572,9 @@ class HealthManager
   def process_heartbeat_message(message)
     VCAP::Component.varz[:heartbeat_msgs_received] += 1
     result = []
-    parse_json(message)['droplets'].each do |heartbeat|
+    parsed_message = parse_json(message)
+    dea_prod = parsed_message['prod']
+    parsed_message['droplets'].each do |heartbeat|
       droplet_id = heartbeat['droplet']
       instance = heartbeat['instance']
       droplet_entry = @droplets[droplet_id]
@@ -583,6 +590,7 @@ class HealthManager
           else
             index_entry[:instance] = instance
             index_entry[:timestamp] = now
+            index_entry[:dea_prod] = dea_prod
             index_entry[:state] = state.to_s
             index_entry[:state_timestamp] = heartbeat['state_timestamp']
           end
@@ -749,6 +757,7 @@ class HealthManager
 
     droplet_entry[:instances] = droplet.instances
     droplet_entry[:framework] = droplet.framework
+    droplet_entry[:prod] = droplet.prod
     droplet_entry[:runtime] = droplet.runtime
     droplet_entry[:state] = droplet.state.upcase
     droplet_entry[:last_updated] = droplet.last_updated

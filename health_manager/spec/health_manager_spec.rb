@@ -29,6 +29,10 @@ describe HealthManager do
     app
   end
 
+  def make_stats
+    { :frameworks => {}, :runtimes => {}, :running => 0, :down => 0 }
+  end
+
   def build_app(appname = 'testapp')
     @app = make_db_app_entry(appname)
     @app.set_urls(["http://#{appname}.vcap.me"])
@@ -112,26 +116,29 @@ describe HealthManager do
     build_user_and_app
   end
 
-  def make_heartbeat_message(indices, state)
+  def make_heartbeat_message(options = {})
+    options = options.dup #copy before getting all destructive
+    indices = options.delete('indices') || [0]
+
     droplets = []
     indices.each do |index|
       droplets << {
-        'droplet' => @app.id, 'index' => index, 'instance' => index, 'state' => state,
+        'droplet' => @app.id, 'index' => index, 'instance' => "badbeef-#{index}", 'state' => 'RUNNING',
         'version' => @droplet_entry[:live_version], 'state_timestamp' => @droplet_entry[:last_updated]
-      }
+      }.merge(options)
     end
     { 'droplets' => droplets }
   end
 
-  def make_crashed_message
+  def make_crashed_message(options={})
     {
       'droplet' => @app.id,
       'version' => "#{@app.staged_package_hash}-#{@app.run_count}",
       'index' => 0,
-      'instance' => 0,
+      'instance' => "badbeef-0",
       'reason' => 'CRASHED',
       'crash_timestamp' => Time.now.to_i
-    }
+    }.merge(options)
   end
 
   def make_restart_message(options = {})
@@ -177,7 +184,7 @@ describe HealthManager do
   end
 
   it "should detect extra instances and send a STOP request" do
-    stats = { :frameworks => {}, :runtimes => {}, :running => 0, :down => 0 }
+    stats = make_stats
     timestamp = Time.now.to_i
     version_entry = { indices: {
         0 => { :state => 'RUNNING', :timestamp => timestamp, :last_action => @app.last_updated, :instance => '0' },
@@ -201,7 +208,7 @@ describe HealthManager do
   end
 
   it "should update its internal state to reflect heartbeat messages" do
-    droplet_entries = @hm.process_heartbeat_message(make_heartbeat_message([0], "RUNNING").to_json)
+    droplet_entries = @hm.process_heartbeat_message(make_heartbeat_message.to_json)
 
     droplet_entries.size.should == 1
     droplet_entry = droplet_entries[0]
@@ -227,9 +234,41 @@ describe HealthManager do
     ensure_gaveup_restarting
   end
 
+  it 'should stop instance with mismatched prod flag' do
+    stats = make_stats
+
+    # this example simulates a non-prod app, with intances 0,2 running
+    # on default (non-discriminating) dea, and instance 1
+    # inappropriately running on prod-only dea.  The instance 1 is
+    # then stopped by hm, and restarted elsewhere.
+
+    hb02 = make_heartbeat_message('indices' => [0,2])
+    @hm.process_heartbeat_message(hb02.to_json)
+
+    hb1 = make_heartbeat_message('indices' => [1])
+    hb1['prod'] = true # augment heartbeat with dea prod status
+    @hm.process_heartbeat_message(hb1.to_json)
+
+    @droplet_entry = @hm.droplets[@app.id]
+
+    stoppee_instance = @droplet_entry[:versions].values.first[:indices][1]
+
+    stop_message = {
+      'droplet' => @app.id,
+      'op' => 'STOP',
+      'last_updated' => stoppee_instance[:timestamp],
+      'instances' => [stoppee_instance[:instance]]
+    }
+    should_publish_to_nats("cloudcontrollers.hm.requests", stop_message)
+    should_publish_to_nats("cloudcontrollers.hm.requests", make_restart_message('indices'=>[1]))
+
+    @hm.analyze_app(@app.id, @droplet_entry, stats)
+    @hm.deque_a_batch_of_requests
+  end
+
   def ensure_non_flapping_restart
     should_publish_to_nats "cloudcontrollers.hm.requests", make_restart_message
-    @hm.process_heartbeat_message(make_heartbeat_message([0], "RUNNING").to_json)
+    @hm.process_heartbeat_message(make_heartbeat_message.to_json)
     droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
     @hm.deque_a_batch_of_requests
     get_live_index(droplet_entry,0)[:state].should == 'DOWN'
@@ -238,15 +277,13 @@ describe HealthManager do
 
   def ensure_flapping_delayed_restart(delay)
     in_em_with_fiber do |f|
-
       should_publish_to_nats "cloudcontrollers.hm.requests", make_restart_message('flapping' => true)
 
-      @hm.process_heartbeat_message(make_heartbeat_message([0], "RUNNING").to_json)
+      @hm.process_heartbeat_message(make_heartbeat_message.to_json)
       droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
 
       get_live_index(droplet_entry,0)[:state].should == 'FLAPPING'
       @hm.restart_pending?(@app.id, 0).should be_true
-
 
       # half a second before the delay elapses the restart is still pending
       EM.add_timer(delay - 0.5) do
@@ -266,7 +303,7 @@ describe HealthManager do
   end
 
   def ensure_gaveup_restarting
-    @hm.process_heartbeat_message(make_heartbeat_message([0], "RUNNING").to_json)
+    @hm.process_heartbeat_message(make_heartbeat_message.to_json)
     droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
     get_live_index(droplet_entry,0)[:state].should == 'FLAPPING'
     get_live_index(droplet_entry,0)[:crashes].should > @giveup_crash_number
