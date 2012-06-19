@@ -266,6 +266,9 @@ class HealthManager
           elsif version != droplet_entry[:live_version]
             extra_instance = true
             reason = "Live version mismatch. Live version is #{droplet_entry[:live_version]} instance version is #{version}."
+          elsif droplet_entry[:tier] != index_entry[:dea_tier]
+            extra_instance = true
+            reason = "Tier mismatch. app tier: #{droplet_entry[:tier]}, dea tier: #{index_entry[:dea_tier]}"
           end
 
           if RUNNING_STATES.include?(index_entry[:state]) && extra_instance
@@ -567,7 +570,9 @@ class HealthManager
   def process_heartbeat_message(message)
     VCAP::Component.varz[:heartbeat_msgs_received] += 1
     result = []
-    parse_json(message)['droplets'].each do |heartbeat|
+    parsed_message = parse_json(message)
+    dea_tier = parsed_message['tier']
+    parsed_message['droplets'].each do |heartbeat|
       droplet_id = heartbeat['droplet']
       instance = heartbeat['instance']
       droplet_entry = @droplets[droplet_id]
@@ -583,6 +588,7 @@ class HealthManager
           else
             index_entry[:instance] = instance
             index_entry[:timestamp] = now
+            index_entry[:dea_tier] = dea_tier
             index_entry[:state] = state.to_s
             index_entry[:state_timestamp] = heartbeat['state_timestamp']
           end
@@ -749,6 +755,7 @@ class HealthManager
 
     droplet_entry[:instances] = droplet.instances
     droplet_entry[:framework] = droplet.framework
+    droplet_entry[:tier] = droplet.tier
     droplet_entry[:runtime] = droplet.runtime
     droplet_entry[:state] = droplet.state.upcase
     droplet_entry[:last_updated] = droplet.last_updated

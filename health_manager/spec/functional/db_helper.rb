@@ -73,6 +73,7 @@ class HMExpectedStateHelperDB
         t.string   "name"
         t.string   "framework"
         t.string   "runtime"
+        t.string   "tier"
         t.integer  "memory",              :default => 256
         t.integer  "instances",           :default => 0
         t.string   "state",               :default => "STOPPED"

@@ -483,6 +483,7 @@ class AppManager
         :limits => message[:limits],
         :name => message[:name],
         :runtime => message[:runtime],
+        :tier => message[:tier],
         :sha => message[:sha1]
       }
       json_msg = Yajl::Encoder.encode(find_dea_message)
@@ -541,6 +542,7 @@ class AppManager
     data = {:droplet => app.id, :name => app.name, :uris => app.mapped_urls}
     data[:runtime] = app.runtime
     data[:framework] = app.framework
+    data[:tier] = app.tier
     data[:sha1] = app.staged_package_hash
     data[:executableFile] = app.resolve_staged_package_path
     data[:executableUri] = "/staged_droplets/#{app.id}/#{app.staged_package_hash}"
