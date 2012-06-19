@@ -19,7 +19,7 @@ class Service < ActiveRecord::Base
   serialize :binding_options
   serialize :acls
 
-  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout
+  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider
 
   def self.active_services
     where("active = ?", true)

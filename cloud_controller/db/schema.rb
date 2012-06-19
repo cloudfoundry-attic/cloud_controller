@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120511124233) do
+ActiveRecord::Schema.define(:version => 20120619021951) do
 
   create_table "app_collaborations", :force => true do |t|
     t.integer  "app_id"
@@ -129,6 +129,7 @@ ActiveRecord::Schema.define(:version => 20120511124233) do
     t.datetime "updated_at"
     t.integer  "timeout"
     t.string   "cf_plan_id"
+    t.string   "provider"
   end
 
   add_index "services", ["name", "version"], :name => "index_services_on_name_and_version", :unique => true
