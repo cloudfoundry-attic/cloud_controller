@@ -15,8 +15,8 @@ GIT
 
 GIT
   remote: git://github.com/cloudfoundry/uaa.git
-  revision: 792e78165f7702e1e9d512198e6cf9a035ecddab
-  ref: 792e7816
+  revision: 95e522f038da3aba8ea2a2b3f94e567a5cbe6392
+  ref: 95e522f0
   specs:
     cf-uaa-client (0.2.0)
       em-http-request (>= 1.0.0.beta.3, <= 1.0.0.beta.3)
@@ -84,7 +84,7 @@ GEM
       daemons (>= 1.0.9)
       eventmachine (>= 0.12.6)
       rack (>= 1.0.0)
-    thor (0.15.2)
+    thor (0.15.3)
     yajl-ruby (0.8.3)
 
 PLATFORMS
