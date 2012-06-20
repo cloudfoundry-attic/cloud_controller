@@ -178,6 +178,7 @@ class Service < ActiveRecord::Base
     svc_offering[:acls]            = self.acls            if self.acls
     svc_offering[:active]          = self.active          if self.active
     svc_offering[:timeout]         = self.timeout         if self.timeout
+    svc_offering[:provider]        = self.provider        if self.provider
     return svc_offering
   end
 
