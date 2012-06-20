@@ -24,10 +24,10 @@ GIT
 
 GIT
   remote: git://github.com/cloudfoundry/uaa.git
-  revision: 792e78165f7702e1e9d512198e6cf9a035ecddab
-  ref: 792e7816
+  revision: b19eb89b16a7646b6272556060e52ad09fc6707d
+  ref: b19eb89b
   specs:
-    cf-uaa-client (0.2.0)
+    cf-uaa-client (1.0.2)
       em-http-request (>= 1.0.0.beta.3, <= 1.0.0.beta.3)
       eventmachine
       interact
@@ -203,7 +203,7 @@ PLATFORMS
 DEPENDENCIES
   SystemTimer (~> 1.2)
   bcrypt-ruby (~> 2.1.4)
-  cf-uaa-client (~> 0.2.0)!
+  cf-uaa-client (~> 1.0)!
   ci_reporter
   delorean
   em-hiredis
