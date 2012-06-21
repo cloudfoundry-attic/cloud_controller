@@ -30,8 +30,6 @@ class ServiceConfig < ActiveRecord::Base
     #    The upstream is responsible for deleting the dangling config
     #    the next time it pulls canonical state (since the state
     #    will lack the handle).
-    svc = find_by_alias(cfg_alias)
-    raise CloudError.new(CloudError::ALIAS_BEEN_TAKEN) if svc
 
     begin
       req = VCAP::Services::Api::GatewayProvisionRequest.new(
