@@ -15,6 +15,22 @@ class BulkController < ApplicationController
     render_results_and_token_for_model(App)
   end
 
+  def counts
+    # no Kernel.const_get() for me, thank you.
+    model_hash = {
+      'app' => App,
+      'user' => User
+    }
+
+    model_name = params['model'] || 'user'
+    if model_hash.keys.include?(model_name)
+      model = model_hash[model_name]
+      render :json => { :counts => { model_name => model.count }}
+    else
+      CloudController.logger.error("bulk: counts: invalid model request: #{model_name}")
+    end
+  end
+
   private
   def authenticate_bulk_api
     authenticate_or_request_with_http_basic do |user, pass|
@@ -22,7 +38,7 @@ class BulkController < ApplicationController
           pass==AppConfig[:bulk_api][:auth][:password]
         true
       else
-        CloudController.logger.error("Bulk api auth failed (user=#{user}, pass=#{pass} from #{request.remote_ip}", :tags => [:auth_failure, :bulk_api])
+        CloudController.logger.error("bulk: auth failed (user=#{user}, pass=#{pass} from #{request.remote_ip}", :tags => [:auth_failure, :bulk_api])
         false
       end
     end

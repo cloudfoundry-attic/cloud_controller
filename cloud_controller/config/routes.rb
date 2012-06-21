@@ -32,6 +32,7 @@ CloudController::Application.routes.draw do
   #from where the last request left off.
   get    'bulk/apps'                 => 'bulk#apps',            :as => :bulk_apps
   get    'bulk/users'                => 'bulk#users',           :as => :bulk_users
+  get    'bulk/counts'               => 'bulk#counts',          :as => :bulk_counts
 
   # Stagers interact with the CC via these urls
   post   'staging/droplet/:id/:upload_id' => 'staging#upload_droplet', :as => :upload_droplet
