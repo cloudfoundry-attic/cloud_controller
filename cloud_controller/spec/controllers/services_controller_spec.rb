@@ -546,6 +546,7 @@ describe ServicesController do
         end
         response.status.should == 200
 
+        VCAP::Services::Api::ServiceGatewayClient.any_instance.expects(:provision).never
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
@@ -555,6 +556,37 @@ describe ServicesController do
         response.status.should == 400
 
         stop_gateway(gw_pid)
+      end
+
+      it "should be able to provision a config with the same name from different user" do
+        shim = ServiceProvisionerStub.new
+        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        gw_pid = start_gateway(@svc, shim)
+
+        post_msg :provision do
+          VCAP::Services::Api::CloudControllerProvisionRequest.new(
+            :label => 'foo-bar',
+            :name  => 'foo',
+            :plan  => 'free')
+        end
+        response.status.should == 200
+
+        u = User.new(:email => 'foo1@bar.com')
+        u.set_and_encrypt_password('foobar')
+        u.save
+        u.should be_valid
+        request.env['HTTP_AUTHORIZATION'] = UserToken.create('foo1@bar.com').encode
+
+        post_msg :provision do
+          VCAP::Services::Api::CloudControllerProvisionRequest.new(
+            :label => 'foo-bar',
+            :name  => 'foo',
+            :plan  => 'free')
+        end
+        response.status.should == 200
+
+        stop_gateway(gw_pid)
+
       end
     end
 
