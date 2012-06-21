@@ -145,7 +145,7 @@ class Service < ActiveRecord::Base
     when /redis/
       'key-value'
     when /mongodb/
-      'key-value'
+      'document'
     else
       'generic'
     end
