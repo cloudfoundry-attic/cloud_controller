@@ -31,7 +31,14 @@ class ServiceConfig < ActiveRecord::Base
     #    the next time it pulls canonical state (since the state
     #    will lack the handle).
 
-    begin
+    transaction do
+      svc_config = ServiceConfig.create!(
+        :user_id     => user.id,
+        :service_id  => service.id,
+        :alias       => cfg_alias,
+        :plan        => plan,
+        :plan_option => plan_option
+      )
       req = VCAP::Services::Api::GatewayProvisionRequest.new(
         :label => service.label,
         :name  => cfg_alias,
@@ -41,26 +48,27 @@ class ServiceConfig < ActiveRecord::Base
       )
 
       client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
-      config = client.provision req.extract
-    rescue => e
-      CloudController.logger.error("Error talking to gateway: #{e}")
-      CloudController.logger.error(e)
-      raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
+      begin
+        config = client.provision req.extract
+      rescue => e
+        CloudController.logger.error("Error talking to gateway: #{e}")
+        CloudController.logger.error(e)
+        raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
+      end
+      svc_config.attributes = {
+        data:config.data,
+        credentials:config.credentials,
+        name:config.service_id
+      }
+      begin
+        svc_config.save!
+        return svc_config
+      rescue => e
+        # FIXME: find a more blackbox-ish way to test this behavior
+        unprovision(service, config.service_id)
+        raise
+      end
     end
-
-    svc_config = ServiceConfig.new(
-      :user_id     => user.id,
-      :service_id  => service.id,
-      :alias       => cfg_alias,
-      :data        => config.data,
-      :credentials => config.credentials,
-      :name        => config.service_id,
-      :plan        => plan,
-      :plan_option => plan_option
-    )
-    svc_config.save!
-
-    svc_config
   end
 
   def self.unprovision(service, service_id)
