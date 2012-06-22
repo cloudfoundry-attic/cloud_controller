@@ -63,10 +63,16 @@ class ServiceConfig < ActiveRecord::Base
     svc_config
   end
 
-  def unprovision
-    svc = service
-    cfg_name = name
+  def self.unprovision(service, service_id)
+    client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
+    client.unprovision(:service_id => service_id)
+  rescue => e
+    CloudController.logger.error("Error talking to gateway: #{e}")
+    CloudController.logger.error(e)
+    raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
+  end
 
+  def unprovision
     # Destroy our copy first. Order here is important. What follows each
     # numbered operation assumes that the operation failed.
     #
@@ -79,14 +85,7 @@ class ServiceConfig < ActiveRecord::Base
 
     destroy
 
-    begin
-      client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
-      client.unprovision(:service_id => cfg_name)
-    rescue => e
-      CloudController.logger.error("Error talking to gateway: #{e}")
-      CloudController.logger.error(e)
-      raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
-    end
+    ServiceConfig.unprovision(service, name)
   end
 
   def handle_lifecycle_error(e)
