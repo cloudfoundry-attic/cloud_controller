@@ -81,11 +81,11 @@ describe ServiceConfig do
 
     it "should enforce uniquenss of service aliases scoped to users" do
       VCAP::Services::Api::ServiceGatewayClient.any_instance.
-        stubs(:provision).returns(stub_everything)
+        expects(:provision).returns(stub_everything)
 
       ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
       expect {
-        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+        ServiceConfig.provision(service, bob, 'foo', 'free-plan', 'plan option')
       }.to raise_error
     end
 
@@ -96,6 +96,5 @@ describe ServiceConfig do
       ServiceConfig.provision(@service, @alice, 'foo', 'free-plan', 'plan option')
       ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
     end
-
   end
 end
