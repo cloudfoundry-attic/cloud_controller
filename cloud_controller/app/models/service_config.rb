@@ -20,6 +20,12 @@ class ServiceConfig < ActiveRecord::Base
     # Ordering here is important. What follows each numbered operation
     # assumes that it failed.
     #
+    # 0. Validate user input
+    #    This is implemented by partially recording the state sans the service
+    #    instance handle.
+    #    If input is invalided, the change to state will be rolled back, and
+    #    the exception will propagate back to the controller
+    #
     # 1. Update the upstream gateway
     #    If the upstream gateway died before provisioning the request,
     #    then no state has changed and all is well. If the upstream died
@@ -27,11 +33,20 @@ class ServiceConfig < ActiveRecord::Base
     #    its local state after pulling the canonical state.
     #
     # 2. Update our local state
-    #    The upstream is responsible for deleting the dangling config
+    #    If this goes wrong, we unprovision the instance created upstream and
+    #    rollback the change. In this course more things can go wrong, in which
+    #    case the upstream is responsible for deleting the dangling config
     #    the next time it pulls canonical state (since the state
     #    will lack the handle).
 
-    begin
+    transaction do
+      svc_config = ServiceConfig.create!(
+        :user_id     => user.id,
+        :service_id  => service.id,
+        :alias       => cfg_alias,
+        :plan        => plan,
+        :plan_option => plan_option
+      )
       req = VCAP::Services::Api::GatewayProvisionRequest.new(
         :label => service.label,
         :name  => cfg_alias,
@@ -41,26 +56,26 @@ class ServiceConfig < ActiveRecord::Base
       )
 
       client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
-      config = client.provision req.extract
-    rescue => e
-      CloudController.logger.error("Error talking to gateway: #{e}")
-      CloudController.logger.error(e)
-      raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
+      begin
+        config = client.provision req.extract
+      rescue => e
+        CloudController.logger.error("Error talking to gateway: #{e}")
+        CloudController.logger.error(e)
+        raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
+      end
+      svc_config.attributes = {
+        :data           => config.data,
+        :credentials    => config.credentials,
+        :name           => config.service_id
+      }
+      begin
+        svc_config.save!
+        return svc_config
+      rescue => e
+        unprovision(service, config.service_id)
+        raise
+      end
     end
-
-    svc_config = ServiceConfig.new(
-      :user_id     => user.id,
-      :service_id  => service.id,
-      :alias       => cfg_alias,
-      :data        => config.data,
-      :credentials => config.credentials,
-      :name        => config.service_id,
-      :plan        => plan,
-      :plan_option => plan_option
-    )
-    svc_config.save!
-
-    svc_config
   end
 
   def self.unprovision(service, service_id)
