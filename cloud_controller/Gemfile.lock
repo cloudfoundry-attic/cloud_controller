@@ -1,5 +1,5 @@
 GIT
-  remote: git://github.com/cloudfoundry/common.git
+  remote: https://github.com/cloudfoundry/common.git
   revision: e36886a189b82f880a5aa3e9169712d5d9048a88
   ref: e36886a1
   specs:
@@ -7,14 +7,14 @@ GIT
       rake
 
 GIT
-  remote: git://github.com/cloudfoundry/eventmachine.git
+  remote: https://github.com/cloudfoundry/eventmachine.git
   revision: 2806c630d8631d5dcf9fb2555f665b829052aabe
   branch: release-0.12.11-cf
   specs:
     eventmachine (0.12.11.cloudfoundry.3)
 
 GIT
-  remote: git://github.com/cloudfoundry/stager-client.git
+  remote: https://github.com/cloudfoundry/stager-client.git
   revision: fdaae720264e43cf7b1d068fcac27b005517d922
   specs:
     stager-client (0.0.2)
@@ -23,7 +23,7 @@ GIT
       yajl-ruby
 
 GIT
-  remote: git://github.com/cloudfoundry/uaa.git
+  remote: https://github.com/cloudfoundry/uaa.git
   revision: 792e78165f7702e1e9d512198e6cf9a035ecddab
   ref: 792e7816
   specs:
@@ -37,9 +37,9 @@ GIT
       thor
 
 GIT
-  remote: git://github.com/cloudfoundry/vcap-common.git
+  remote: https://github.com/cloudfoundry/vcap-common.git
   revision: a7779114db666a1cf5eedf3fd1576c657ccafb6d
-  ref: a7779114db666a1cf5eedf3fd1576c657ccafb6d
+  ref: a7779114
   specs:
     vcap_common (1.0.13)
       eventmachine (~> 0.12.11.cloudfoundry.3)
@@ -49,7 +49,7 @@ GIT
       yajl-ruby (~> 0.8.3)
 
 GIT
-  remote: git://github.com/cloudfoundry/vcap-staging.git
+  remote: https://github.com/cloudfoundry/vcap-staging.git
   revision: 251cb526ea26961bfc46efdea7f8268510e32e25
   ref: 251cb526
   specs:
