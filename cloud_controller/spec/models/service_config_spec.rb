@@ -81,7 +81,7 @@ describe ServiceConfig do
 
     it "should enforce uniquenss of service aliases scoped to users" do
       VCAP::Services::Api::ServiceGatewayClient.any_instance.
-        stubs(:provision).returns(stub_everything)
+        expects(:provision).returns(stub_everything)
 
       ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
       expect {
@@ -97,5 +97,20 @@ describe ServiceConfig do
       ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
     end
 
+    # Yuck, this test is very whitebox-ish
+    it "should unprovision the service instance if one has been created by cannot be recorded" do
+      cfg = stub_everything().quacks_like(ServiceConfig.new)
+      ServiceConfig.expects(:create!).returns(cfg)
+      cfg.stubs(:save!).raises("Don't save")
+      state = states("provisioned?").starts_as("no")
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        expects(:provision).returns(stub_everything).then(state.is("yes"))
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        expects(:unprovision).when(state.is("yes"))
+
+      expect {
+        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      }.to raise_error("Don't save")
+    end
   end
 end
