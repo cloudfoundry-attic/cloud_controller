@@ -38,4 +38,29 @@ describe ServiceConfig do
     cfg.save
     cfg.should be_valid
   end
+
+
+  describe '#unprovision' do
+    it "must destroy itself before requesting service gateway to unprovision" do
+      cfg = ServiceConfig.new(:name => 'foo', :alias => 'bar', :user_id => 1)
+      cfg.service = Service.new
+
+      state = states("ServiceConfig record state").starts_as('new')
+      cfg.expects(:destroy).then(state.is('destroyed'))
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        stubs(:unprovision).with(:service_id => 'foo').
+        when(state.is('destroyed'))
+      cfg.unprovision
+    end
+
+    it "should not request unprovisioning if local state is not altered" do
+      cfg = ServiceConfig.new(:name => 'foo', :alias => 'bar', :user_id => 1)
+      cfg.expects(:destroy).raises("Don't erase")
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        expects(:unprovision).never
+      cfg.unprovision rescue nil
+      cfg.should_not be_destroyed
+    end
+  end
+
 end
