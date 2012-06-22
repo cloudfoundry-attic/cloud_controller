@@ -63,4 +63,39 @@ describe ServiceConfig do
     end
   end
 
+  describe ".provision" do
+    before(:each) do
+      @alice = stub_everything(id:1, email:'alice@example.com').quacks_like(User.new)
+      @bob = stub_everything(id:2, email:'bob@example.com').quacks_like(User.new)
+      @service = stub_everything(id:1, label:'postgres-9').quacks_like(Service.new)
+    end
+
+    it "should return a ServiceConfig" do
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        expects(:provision).returns(stub_everything)
+
+      ServiceConfig.provision(
+        @service, @bob, 'foo', 'free-plan', 'plan option'
+      ).should be_a(ServiceConfig)
+    end
+
+    it "should enforce uniquenss of service aliases scoped to users" do
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        stubs(:provision).returns(stub_everything)
+
+      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      expect {
+        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      }.to raise_error
+    end
+
+    it "should allow same service alias for different users" do
+      VCAP::Services::Api::ServiceGatewayClient.any_instance.
+        stubs(:provision).returns(stub_everything)
+
+      ServiceConfig.provision(@service, @alice, 'foo', 'free-plan', 'plan option')
+      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+    end
+
+  end
 end
