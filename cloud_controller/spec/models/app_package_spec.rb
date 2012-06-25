@@ -39,6 +39,33 @@ describe AppPackage do
     end
   end
 
+  describe "#create_dir_skeleton" do
+    before :each do
+      @app_package = AppPackage.new(nil, nil)
+      @working_dir = Dir.mktmpdir
+    end
+
+    after :each do
+      FileUtils.rm_rf(@working_dir)
+    end
+
+    it "should raise an error if the resource points outside of the app" do
+      [ "../outside", "../../outside", "../././../outside"].each do |resource|
+        expect do
+          @app_package.create_dir_skeleton("/a/b", resource)
+        end.to raise_error(AppPackageError, /points outside/)
+      end
+    end
+
+    it "should create the directory skeleton if the resource points inside the app" do
+      ["foo/bar/baz.rb", "bar/../bar/baz/jaz.rb"].each do |resource|
+        @app_package.create_dir_skeleton(@working_dir, resource)
+      end
+
+      File.directory?(File.join(@working_dir, "foo/bar")).should be_true
+      File.directory?(File.join(@working_dir, "bar/baz")).should be_true
+    end
+  end
 
   describe '#unpack_upload' do
     it 'should raise an instance of AppPackageError if unzip exits with a nonzero status code' do
