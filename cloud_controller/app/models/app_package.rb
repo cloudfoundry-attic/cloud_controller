@@ -182,6 +182,42 @@ class AppPackage
     working_dir
   end
 
+  # Creates the directory structure leading up to the resource specified by
+  # _resource_path_, relative to _working_dir_.
+  #
+  # @param [String] working_dir
+  # @param [String] resource_path Relative path for the resource in question.
+  #
+  # @return [nil]
+  def create_dir_skeleton(working_dir, resource_path)
+    resource_dirname = File.dirname(resource_path)
+
+    skel_parts = File.join(working_dir, resource_dirname).split("/")
+    real_parts = []
+
+    skel_parts.each do |part|
+      case part
+      when ".."
+        real_parts.pop
+      when "."
+        # No-op
+      else
+        real_parts.push(part)
+      end
+    end
+
+    real_path = File.join(*real_parts)
+
+    if !real_path.start_with?(working_dir)
+      raise AppPackageError.new("Resource '#{resource_path}' points outside" \
+                                + " app package")
+    end
+
+    FileUtils.mkdir_p(real_path)
+
+    nil
+  end
+
   # enforce property that any file in resource list must be located in the
   # apps directory e.g. '../../foo' or a symlink pointing outside working_dir
   # should raise an exception.
@@ -202,6 +238,7 @@ class AppPackage
         pool = CloudController.resource_pool
         pool.add_directory(working_dir)
         @resource_descriptors.each do |descriptor|
+          create_dir_skeleton(working_dir, descriptor[:fn])
           path = resolve_path(working_dir, descriptor[:fn])
           pool.copy(descriptor, path)
         end
