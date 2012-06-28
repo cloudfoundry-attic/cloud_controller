@@ -65,6 +65,13 @@ describe AppPackage do
       File.directory?(File.join(@working_dir, "foo/bar")).should be_true
       File.directory?(File.join(@working_dir, "bar/baz")).should be_true
     end
+
+    it "should not create a directory in the place of a file resource" do
+      @app_package.create_dir_skeleton(@working_dir, "foo/bar/baz.rb")
+
+      File.directory?(File.join(@working_dir, "foo/bar/baz.rb")).should be_false
+      File.exists?(File.join(@working_dir, "foo/bar/baz.rb")).should be_false
+    end
   end
 
   describe '#unpack_upload' do
