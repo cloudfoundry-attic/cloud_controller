@@ -144,7 +144,7 @@ builtin_services:
     token: "0xdeadbeef"
   filesystem:
     token: "0xdeadbeef"
-  vblob:
+  blob:
     token: "0xdeadbeef"
 
 # Service broker
