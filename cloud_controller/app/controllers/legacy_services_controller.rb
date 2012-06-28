@@ -49,18 +49,21 @@ class LegacyServicesController < ApplicationController
     req = LegacyVmcMessages::ProvisionRequest.decode(request_body)
     @event_args = [req.vendor, req.name]
 
-    label = req.vendor + "-" + req.version
-    svc = ::Service.find_by_label(label)
-    # Legacy api fell back to matching by vendor if no version matched
-    svc ||= ::Service.find_by_name(req.vendor)
-
+    # translate alias to version in request
+    # NOTE, since legacy api doesn't contains label information,
+    # we assumes there is only one service record for each name.
+    svc = ::Service.find_by_name(req.vendor)
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc && svc.visible_to_user?(user, req.tier)
+    version = svc.version_aliases[req.version.to_s] || req.version
+
+    # Legacy api fell back to matching by vendor and use the default version if no version matched
+    version = svc.version unless svc.support_version? version
 
     plan_option = nil
     if req.options && req.options['plan_option']
       plan_option = req.options['plan_option']
     end
-    ServiceConfig.provision(svc, user, req.name, req.tier, plan_option)
+    ServiceConfig.provision(svc, user, req.name, req.tier, plan_option, version)
 
     render :json => {}
   end
