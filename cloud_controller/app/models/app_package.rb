@@ -197,7 +197,7 @@ class AppPackage
                                 + " app package")
     end
 
-    FileUtils.mkdir_p(real_path)
+    FileUtils.mkdir_p(File.dirname(real_path))
 
     nil
   end
