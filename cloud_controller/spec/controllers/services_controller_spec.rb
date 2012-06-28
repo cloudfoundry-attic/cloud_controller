@@ -1,24 +1,9 @@
 require 'spec_helper'
+require 'support/service_controller_helper'
 
 require 'mocha'
 require 'thin'
 require 'uri'
-
-# Shim so that we can stub/mock out desired return values for our forked
-# gateway
-class ServiceProvisionerStub
-  def provision_service(version, plan)
-  end
-
-  def unprovision_service(service_id)
-  end
-
-  def bind_instance(service_id, binding_options)
-  end
-
-  def unbind_instance(service_id, handle_id, binding_options)
-  end
-end
 
 describe ServicesController do
 
@@ -493,6 +478,7 @@ describe ServicesController do
       svc.url   = "http://localhost:56789"
       svc.token = 'foobar'
       svc.plans = ['free', 'nonfree']
+      svc.supported_versions = ["bar", "baz"]
       svc.save
       svc.should be_valid
       @svc = svc
@@ -553,6 +539,53 @@ describe ServicesController do
             :plan  => 'free')
         end
         response.status.should == 400
+
+        stop_gateway(gw_pid)
+      end
+
+      it "should support default service version" do
+        shim = ServiceProvisionerStub.new
+        shim.stubs(:provision_service).with('bar', 'free').returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        gw_pid = start_gateway(@svc, shim)
+
+        post_msg :provision do
+          VCAP::Services::Api::CloudControllerProvisionRequest.new(
+            :label => 'foo-bar',
+            :name  => "foo",
+            :plan  => 'free'
+          )
+        end
+        response.status.should == 200
+
+        stop_gateway(gw_pid)
+      end
+
+      it "should support version in provision request" do
+        shim = ServiceProvisionerStub.new
+        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        gw_pid = start_gateway(@svc, shim)
+
+        %w(bar baz).each do |version|
+          post_msg :provision do
+            VCAP::Services::Api::CloudControllerProvisionRequest.new(
+              :label => 'foo-bar',
+              :name  => "foo-#{version}",
+              :plan  => 'free',
+              :version => version
+            )
+          end
+          response.status.should == 200
+        end
+
+        post_msg :provision do
+          VCAP::Services::Api::CloudControllerProvisionRequest.new(
+            :label => 'foo-bar',
+            :name  => 'foo-qux',
+            :plan  => 'free',
+            :version => 'qux'
+          )
+        end
+        response.status.should == 404
 
         stop_gateway(gw_pid)
       end
@@ -1230,77 +1263,4 @@ describe ServicesController do
       end
     end
   end
-
-  def start_gateway(svc, shim)
-    svc_info = {
-      :name    => svc.name,
-      :version => svc.version
-    }
-    uri = URI.parse(svc.url)
-    gateway = VCAP::Services::SynchronousServiceGateway.new(:service => svc_info, :token => svc.token, :provisioner => shim)
-    pid = Process.fork do
-      # Prevent the subscriptions registered with the rails initializers from running when we fork the server and start it.
-      # If we don't do this we run the risk of a) starting NATS if it isn't running, or b) sending messages
-      # through an existing NATS server, possibly upsetting already running tests.
-      EM.instance_variable_set(:@next_tick_queue, [])
-
-      outfile = File.new('/dev/null', 'w+')
-      $stderr.reopen(outfile)
-      $stdout.reopen(outfile)
-      trap("INT") { exit }
-      Thin::Server.start(uri.host, uri.port, gateway, :signals => false)
-    end
-    server_alive = wait_for {port_open? uri.port}
-    server_alive.should be_true
-
-    # In case an exception is thrown before we can cleanup
-    at_exit { Process.kill(9, pid) if VCAP.process_running?(pid) }
-
-    pid
-  end
-
-  def stop_gateway(pid)
-    Process.kill("INT", pid)
-    Process.waitpid(pid)
-  end
-
-  def post_msg(*args, &blk)
-    msg = yield
-    request.env['RAW_POST_DATA'] = msg.encode
-    post(*args)
-  end
-
-  def put_msg(*args, &blk)
-    msg = yield
-    request.env['RAW_POST_DATA'] = msg.encode
-    put(*args)
-  end
-
-  def delete_msg(*args, &blk)
-    msg = yield
-    request.env['RAW_POST_DATA'] = msg.encode
-    delete(*args)
-  end
-
-  def port_open?(port)
-    port_open = true
-    begin
-      s = TCPSocket.new('localhost', port)
-      s.close()
-    rescue
-      port_open = false
-    end
-    port_open
-  end
-
-  def wait_for(timeout=5, &predicate)
-    start = Time.now()
-    cond_met = predicate.call()
-    while !cond_met && ((Time.new() - start) < timeout)
-      cond_met = predicate.call()
-      sleep(0.2)
-    end
-    cond_met
-  end
-
 end

@@ -218,6 +218,32 @@ describe Service do
     end
   end
 
+  describe "#support_version?" do
+    it "should support multiple versions" do
+      svc = Service.new(:label => "foo-1.0", :url => "http://www.google.com", :token => 'bar',
+                        :supported_versions => ["1.0", "2.0"])
+
+      svc.save
+      svc.should be_valid
+      svc.support_version?("1.0").should be_true
+      svc.support_version?("2.0").should be_true
+      svc.support_version?("3.0").should_not be_true
+    end
+  end
+
+  describe "#version_alias" do
+    it "should support version alias" do
+      svc = Service.new(:label => "foo-1.0", :url => "http://www.google.com", :token => 'bar',
+                        :supported_versions => ["1.0", "2.0"],
+                        :version_aliases => {"current" => "1.0"})
+      svc.save
+      svc.should be_valid
+      svc.version_alias("1.0").should == "current"
+      svc.version_alias("2.0").should_not be_true
+      svc.version_alias("3.0").should_not be_true
+    end
+  end
+
   def make_service(opts)
     svc = Service.new
     opts.each do |k, v|

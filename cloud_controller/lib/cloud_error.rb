@@ -55,6 +55,7 @@ class CloudError < StandardError
   SERVICE_GATEWAY_ERROR = [503, HTTP_BAD_GATEWAY, "Unexpected response from service gateway"]
   ACCOUNT_TOO_MANY_SERVICES = [504, HTTP_FORBIDDEN, "Too many Services provisioned: %s, you're allowed: %s"]
   EXTENSION_NOT_IMPL = [505, HTTP_NOT_IMPLEMENTED, "Service extension %s is not implemented."]
+  SERVICE_VERSION_NOT_FOUND = [506, HTTP_NOT_FOUND, "Service version %s is not found"]
 
   # Account Capacity
   ACCOUNT_NOT_ENOUGH_MEMORY = [600, HTTP_FORBIDDEN, "Not enough memory capacity, you're allowed: %s"]

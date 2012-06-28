@@ -68,6 +68,7 @@ describe ServiceConfig do
       @alice = stub_everything(id:1, email:'alice@example.com').quacks_like(User.new)
       @bob = stub_everything(id:2, email:'bob@example.com').quacks_like(User.new)
       @service = stub_everything(id:1, label:'postgres-9').quacks_like(Service.new)
+      @version = '9'
     end
 
     it "should return a ServiceConfig" do
@@ -75,7 +76,7 @@ describe ServiceConfig do
         expects(:provision).returns(stub_everything)
 
       ServiceConfig.provision(
-        @service, @bob, 'foo', 'free-plan', 'plan option'
+        @service, @bob, 'foo', 'free-plan', 'plan option', @version
       ).should be_a(ServiceConfig)
     end
 
@@ -83,9 +84,9 @@ describe ServiceConfig do
       VCAP::Services::Api::ServiceGatewayClient.any_instance.
         expects(:provision).returns(stub_everything)
 
-      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
       expect {
-        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
       }.to raise_error
     end
 
@@ -93,8 +94,8 @@ describe ServiceConfig do
       VCAP::Services::Api::ServiceGatewayClient.any_instance.
         stubs(:provision).returns(stub_everything)
 
-      ServiceConfig.provision(@service, @alice, 'foo', 'free-plan', 'plan option')
-      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      ServiceConfig.provision(@service, @alice, 'foo', 'free-plan', 'plan option', @version)
+      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
     end
 
     # Yuck, this test is very whitebox-ish
@@ -109,7 +110,7 @@ describe ServiceConfig do
         expects(:unprovision).when(state.is("yes"))
 
       expect {
-        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
       }.to raise_error("Don't save")
     end
   end

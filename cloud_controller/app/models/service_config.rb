@@ -15,7 +15,10 @@ class ServiceConfig < ActiveRecord::Base
   serialize :data
   serialize :credentials
 
-  def self.provision(service, user, cfg_alias, plan, plan_option)
+  def self.provision(service, user, cfg_alias, plan, plan_option, version)
+
+    # backward compatible, use default version if not given
+    version ||= service.version
 
     # Ordering here is important. What follows each numbered operation
     # assumes that it failed.
@@ -52,7 +55,8 @@ class ServiceConfig < ActiveRecord::Base
         :name  => cfg_alias,
         :email => user.email,
         :plan  => plan,
-        :plan_option => plan_option
+        :plan_option => plan_option,
+        :version => version
       )
 
       client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
