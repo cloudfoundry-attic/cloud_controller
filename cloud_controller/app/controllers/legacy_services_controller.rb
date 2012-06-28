@@ -51,8 +51,20 @@ class LegacyServicesController < ApplicationController
 
     label = req.vendor + "-" + req.version
     svc = ::Service.find_by_label(label)
-    # Legacy api fell back to matching by vendor if no version matched
-    svc ||= ::Service.find_by_name(req.vendor)
+    unless svc
+      services = ::Service.find_all_by_name(req.vendor)
+      services.each do |service|
+        if service.support_version? req.version
+          svc = service
+          break
+        end
+      end
+    end
+    # Legacy api fell back to matching by vendor and use the default version if no version matched
+    unless svc
+      svc = ::Service.find_by_name(req.vendor)
+      req.version = svc.version
+    end
 
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc && svc.visible_to_user?(user, req.tier)
 
@@ -60,7 +72,7 @@ class LegacyServicesController < ApplicationController
     if req.options && req.options['plan_option']
       plan_option = req.options['plan_option']
     end
-    ServiceConfig.provision(svc, user, req.name, req.tier, plan_option)
+    ServiceConfig.provision(svc, user, req.name, req.tier, plan_option, req.version)
 
     render :json => {}
   end

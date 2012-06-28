@@ -36,8 +36,18 @@ class DefaultController < ApplicationController
       svc_type = svc.synthesize_service_type
       ret[svc_type] ||= {}
       ret[svc_type][svc.name] ||= {}
-      ret[svc_type][svc.name][svc.version] ||= {}
-      ret[svc_type][svc.name][svc.version] = svc.as_legacy(user)
+
+      versions = svc.supported_versions
+      versions = [ svc.version ] if versions.empty?
+
+      version_aliases = svc.version_aliases
+      versions.each do |version|
+        svc_desc = svc.as_legacy(user)
+        svc_desc[:version] = version
+        svc_desc[:alias] = version_aliases[version] if version_aliases.has_key? version
+        ret[svc_type][svc.name][version] ||= {}
+        ret[svc_type][svc.name][version] = svc_desc
+      end
     end
 
     render :json => ret

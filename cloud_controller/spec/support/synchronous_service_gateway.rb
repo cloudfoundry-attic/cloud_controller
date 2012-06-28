@@ -62,6 +62,7 @@ class VCAP::Services::SynchronousServiceGateway < Sinatra::Base
       abort_request('Unknown label')
     end
 
+    version = req.version if req.version
     svc = @provisioner.provision_service(version, req.plan)
     if svc
       VCAP::Services::Api::GatewayProvisionResponse.new(svc).encode
