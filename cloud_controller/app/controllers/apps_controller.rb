@@ -372,7 +372,11 @@ class AppsController < ApplicationController
     env = body_params[:env].uniq
     env_new = env.delete_if {|e| e =~ /^(vcap|vmc)_/i }
     raise CloudError.new(CloudError::FORBIDDEN) if env != env_new
-    app.environment = env
+    if app.environment != env
+      app.environment = env
+      # We expect app to be restaged if env variables changed
+      app.package_state = 'PENDING'
+    end
   end
 
   def update_app_instances(app)
