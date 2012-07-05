@@ -501,6 +501,13 @@ describe ServicesController do
       request.env['HTTP_AUTHORIZATION'] = UserToken.create('foo@bar.com').encode
     end
 
+    describe '#list' do
+      it 'should return the service offerings list' do
+        get :list
+        response.status.should == 200
+      end
+    end
+
     describe '#provision' do
 
       it 'should return not authorized for unknown users' do
@@ -758,7 +765,7 @@ describe ServicesController do
         shim = ServiceProvisionerStub.new
         shim.stubs(:unprovision_service).returns(true)
         gw_pid = start_gateway(@svc, shim)
-        delete :unprovision, :id => @cfg.name
+        delete :unprovision, :id => @cfg.alias
         response.status.should == 200
         binding = ServiceBinding.find_by_user_id_and_app_id(@user.id, @app.id)
         binding.should be_nil
