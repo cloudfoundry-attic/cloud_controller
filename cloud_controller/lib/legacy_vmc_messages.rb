@@ -12,6 +12,7 @@ module LegacyVmcMessages
     optional :meta,    Hash
     optional :id
     optional :options, Hash
+    optional :provider, String
   end
 
 end

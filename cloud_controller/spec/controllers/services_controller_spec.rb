@@ -205,15 +205,26 @@ describe ServicesController do
 
     describe '#delete' do
       before :each do
-        @svc = Service.create(
+        @svc1 = Service.create(
           :label => 'foo-bar',
           :url   => 'http://www.google.com',
           :token => 'foobar')
-        @svc.should be_valid
+        @svc2 = Service.create(
+          :label => 'foo-bar',
+          :provider => 'test',
+          :url   => 'http://www.google.com',
+          :token => 'foobar')
+        @svc1.should be_valid
+        @svc2.should be_valid
       end
 
-      it 'should return not found for unknown services' do
+      it 'should return not found for unknown label services' do
         delete :delete, :label => 'xxx'
+        response.status.should == 404
+      end
+
+      it 'should return not found for unknown provider services' do
+        delete :delete, :label => 'foo-bar', :provider => 'xxx'
         response.status.should == 404
       end
 
@@ -223,27 +234,47 @@ describe ServicesController do
         response.status.should == 403
       end
 
-      it 'should delete existing offerings' do
+      it 'should delete existing offerings which has null provider' do
         delete :delete, :label => 'foo-bar'
         response.status.should == 200
 
-        svc = Service.find_by_label('foo-bar')
+        svc = Service.find_by_label_and_provider('foo-bar', nil)
+        svc.should be_nil
+      end
+
+      it 'should delete existing offerings which has specific provider' do
+        delete :delete, :label => 'foo-bar', :provider => 'test'
+        response.status.should == 200
+
+        svc = Service.find_by_label_and_provider('foo-bar', 'test')
         svc.should be_nil
       end
     end
 
     describe '#get' do
       before :each do
-        @svc = Service.create(
+        @svc1 = Service.create(
           :label => 'foo-bar',
           :url   => 'http://www.google.com',
           :plans => ['free', 'nonfree'],
           :token => 'foobar')
-        @svc.should be_valid
+        @svc2 = Service.create(
+          :label => 'foo-bar',
+          :provider => 'test',
+          :url   => 'http://www.google.com',
+          :plans => ['free', 'nonfree'],
+          :token => 'foobar')
+        @svc1.should be_valid
+        @svc2.should be_valid
       end
 
-      it 'should return not found for unknown services' do
+      it 'should return not found for unknown label services' do
         get :get, :label => 'xxx'
+        response.status.should == 404
+      end
+
+      it 'should return not found for unknown provider services' do
+        get :get, :label => 'foo-bar', :provider => 'xxx'
         response.status.should == 404
       end
 
@@ -253,13 +284,24 @@ describe ServicesController do
         response.status.should == 403
       end
 
-      it 'should return the specific service offering' do
+      it 'should return the specific service offering which has null provider' do
         get :get, :label => 'foo-bar'
         response.status.should == 200
         resp = Yajl::Parser.parse(response.body)
         resp["label"].should == 'foo-bar'
         resp["url"].should   == 'http://www.google.com'
         resp["plans"].should == ['free', 'nonfree']
+        resp["provider"].should == nil
+      end
+
+      it 'should return the specific service offering which has specific provider' do
+        get :get, :label => 'foo-bar', :provider => 'test'
+        response.status.should == 200
+        resp = Yajl::Parser.parse(response.body)
+        resp["label"].should == 'foo-bar'
+        resp["url"].should   == 'http://www.google.com'
+        resp["plans"].should == ['free', 'nonfree']
+        resp["provider"].should == 'test'
       end
     end
 
@@ -270,29 +312,61 @@ describe ServicesController do
       end
 
       it 'should return provisioned and bound handles' do
-        svc = Service.new
-        svc.label = "foo-bar"
-        svc.url   = "http://localhost:56789"
-        svc.token = 'foobar'
-        svc.save
-        svc.should be_valid
+        svc1 = Service.new
+        svc1.label = "foo-bar"
+        svc1.url   = "http://localhost:56789"
+        svc1.token = 'foobar'
+        svc1.save
+        svc1.should be_valid
 
-        cfg = ServiceConfig.new(:name => 'foo', :alias => 'bar', :service => svc)
-        cfg.save
-        cfg.should be_valid
+        svc2 = Service.new
+        svc2.label    = "foo-bar"
+        svc2.provider = "test"
+        svc2.url      = "http://localhost:56789"
+        svc2.token    = 'foobar'
+        svc2.save
+        svc2.should be_valid
 
-        bdg = ServiceBinding.new(
-          :name  => 'xxxxx',
-          :service_config  => cfg,
+        cfg1 = ServiceConfig.new(:name => 'foo1', :alias => 'bar1', :service => svc1)
+        cfg1.save
+        cfg1.should be_valid
+
+        cfg2 = ServiceConfig.new(:name => 'foo2', :alias => 'bar2', :service => svc2)
+        cfg2.save
+        cfg2.should be_valid
+
+        bdg1 = ServiceBinding.new(
+          :name  => 'bind1',
+          :service_config  => cfg1,
           :configuration   => {},
           :credentials     => {},
           :binding_options => []
         )
-        bdg.save
-        bdg.should be_valid
+        bdg1.save
+        bdg1.should be_valid
+
+        bdg2 = ServiceBinding.new(
+          :name  => 'bind2',
+          :service_config  => cfg2,
+          :configuration   => {},
+          :credentials     => {},
+          :binding_options => []
+        )
+        bdg2.save
+        bdg2.should be_valid
 
         get :list_handles, :label => 'foo-bar'
         response.status.should == 200
+        handles = JSON.parse(response.body)["handles"]
+        handles.size.should == 2
+        handles[0]["service_id"].should == "foo1"
+        handles[1]["service_id"].should == "bind1"
+        get :list_handles, :label => 'foo-bar', :provider => "test"
+        response.status.should == 200
+        handles = JSON.parse(response.body)["handles"]
+        handles.size.should == 2
+        handles[0]["service_id"].should == "foo2"
+        handles[1]["service_id"].should == "bind2"
       end
     end
 
@@ -407,36 +481,62 @@ describe ServicesController do
       before :each do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'foobar'
         AppConfig[:builtin_services] = {
-          :foo => {:token=>"foobar"}
+          :foo1 => {:token=>"foobar"},
+          :foo2 => {:token=>"foobar"}
         }
 
-        svc = Service.new
-        svc.label = "foo-bar"
-        svc.url   = "http://localhost:56789"
-        svc.token = 'foobar'
-        svc.save
-        svc.should be_valid
-        @svc = svc
+        svc1 = Service.new
+        svc1.label = "foo-bar"
+        svc1.url   = "http://localhost:56789"
+        svc1.token = 'foobar'
+        svc1.save
+        svc1.should be_valid
+        @svc1 = svc1
 
-        cfg = ServiceConfig.new(:name => 'foo', :alias => 'bar', :service => svc)
-        cfg.save
-        cfg.should be_valid
-        @cfg = cfg
+        cfg1 = ServiceConfig.new(:name => 'foo1', :alias => 'bar1', :service => svc1)
+        cfg1.save
+        cfg1.should be_valid
+        @cfg1 = cfg1
 
-        bdg = ServiceBinding.new(
-          :name  => 'xxxxx',
-          :service_config  => cfg,
+        bdg1 = ServiceBinding.new(
+          :name  => 'bind1',
+          :service_config  => cfg1,
           :configuration   => {},
           :credentials     => {},
           :binding_options => []
         )
-        bdg.save
-        bdg.should be_valid
-        @bdg = bdg
+        bdg1.save
+        bdg1.should be_valid
+        @bdg1 = bdg1
+
+        svc2 = Service.new
+        svc2.label    = "foo-bar"
+        svc2.provider = "test"
+        svc2.url      = "http://localhost:56789"
+        svc2.token    = 'foobar'
+        svc2.save
+        svc2.should be_valid
+        @svc2 = svc2
+
+        cfg2 = ServiceConfig.new(:name => 'foo2', :alias => 'bar2', :service => svc2)
+        cfg2.save
+        cfg2.should be_valid
+        @cfg2 = cfg2
+
+        bdg2 = ServiceBinding.new(
+          :name  => 'bind2',
+          :service_config  => cfg2,
+          :configuration   => {},
+          :credentials     => {},
+          :binding_options => []
+        )
+        bdg2.save
+        bdg2.should be_valid
+        @bdg2 = bdg2
       end
 
       it 'should return not found for unknown handles' do
-        post_msg :update_handle, :label => @svc.label, :id => 'xxx' do
+        post_msg :update_handle, :label => @svc1.label, :id => 'xxx' do
           VCAP::Services::Api::HandleUpdateRequest.new(
              :service_id => 'xxx',
              :configuration => [],
@@ -446,10 +546,10 @@ describe ServicesController do
         response.status.should == 404
       end
 
-      it 'should update provisioned handles' do
-        post_msg :update_handle, :label => @svc.label, :id => @cfg.name do
+      it 'should update provisioned handles that the service has null provider' do
+        post_msg :update_handle, :label => @svc1.label, :id => @cfg1.name do
           VCAP::Services::Api::HandleUpdateRequest.new(
-             :service_id => @cfg.name,
+             :service_id => @cfg1.name,
              :configuration => [],
              :credentials   => []
           )
@@ -457,15 +557,38 @@ describe ServicesController do
         response.status.should == 200
       end
 
-      it 'should update bound handles' do
-        post_msg :update_handle, :label => @svc.label, :id => @bdg.name do
+      it 'should update provisioned handles that the service has specific provider' do
+        post_msg :update_handle, :label => @svc2.label, :provider => @svc2.provider, :id => @cfg2.name do
           VCAP::Services::Api::HandleUpdateRequest.new(
-             :service_id => @bdg.name,
+             :service_id => @cfg2.name,
+             :configuration => [],
+             :credentials   => []
+          )
+        end
+        response.status.should == 200
+      end
+
+      it 'should update bound handles that the service has null provider' do
+        post_msg :update_handle, :label => @svc1.label, :id => @bdg1.name do
+          VCAP::Services::Api::HandleUpdateRequest.new(
+             :service_id => @bdg1.name,
              :configuration => ['foo'],
              :credentials   => ['bar']
           )
         end
-        foo = ServiceBinding.find_by_name(@bdg.name)
+        foo = ServiceBinding.find_by_name(@bdg1.name)
+        response.status.should == 200
+      end
+
+      it 'should update bound handles that the service has specific provider' do
+        post_msg :update_handle, :label => @svc2.label, :provider => @svc2.provider, :id => @bdg2.name do
+          VCAP::Services::Api::HandleUpdateRequest.new(
+             :service_id => @bdg2.name,
+             :configuration => ['foo'],
+             :credentials   => ['bar']
+          )
+        end
+        foo = ServiceBinding.find_by_name(@bdg2.name)
         response.status.should == 200
       end
     end
@@ -497,8 +620,34 @@ describe ServicesController do
       svc.should be_valid
       @svc = svc
 
+      svc_test = Service.new
+      svc_test.label    = "foo-bar"
+      svc_test.provider = "test"
+      svc_test.url      = "http://localhost:56789"
+      svc_test.token    = 'foobar'
+      svc_test.plans    = ['free', 'nonfree']
+      svc_test.save
+      svc_test.should be_valid
+      @svc_test = svc_test
+
       request.env['CONTENT_TYPE'] = Mime::JSON
       request.env['HTTP_AUTHORIZATION'] = UserToken.create('foo@bar.com').encode
+    end
+
+    describe '#list' do
+      it 'should return service offerings' do
+        get :list
+        response.status.should == 200
+        result = JSON.parse(response.body)
+        result["generic"]["foo"]["core"]["bar"]["label"].should == "foo-bar"
+        result["generic"]["foo"]["core"]["bar"]["url"].should == "http://localhost:56789"
+        result["generic"]["foo"]["core"]["bar"]["plans"].should == ["free", "nonfree"]
+        result["generic"]["foo"]["core"]["bar"]["active"].should == true
+        result["generic"]["foo"]["test"]["bar"]["label"].should == "foo-bar"
+        result["generic"]["foo"]["test"]["bar"]["url"].should == "http://localhost:56789"
+        result["generic"]["foo"]["test"]["bar"]["plans"].should == ["free", "nonfree"]
+        result["generic"]["foo"]["test"]["bar"]["active"].should == true
+      end
     end
 
     describe '#provision' do
@@ -526,6 +675,21 @@ describe ServicesController do
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
+            :name  => 'foo',
+            :plan  => 'free')
+        end
+        response.status.should == 200
+        stop_gateway(gw_pid)
+      end
+
+      it 'should provision services with specific provider' do
+        shim = ServiceProvisionerStub.new
+        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        gw_pid = start_gateway(@svc, shim)
+        post_msg :provision do
+          VCAP::Services::Api::CloudControllerProvisionRequest.new(
+            :label => 'foo-bar',
+            :provider => 'test',
             :name  => 'foo',
             :plan  => 'free')
         end
@@ -758,7 +922,7 @@ describe ServicesController do
         shim = ServiceProvisionerStub.new
         shim.stubs(:unprovision_service).returns(true)
         gw_pid = start_gateway(@svc, shim)
-        delete :unprovision, :id => @cfg.name
+        delete :unprovision, :id => @cfg.alias
         response.status.should == 200
         binding = ServiceBinding.find_by_user_id_and_app_id(@user.id, @app.id)
         binding.should be_nil
