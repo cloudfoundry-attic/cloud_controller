@@ -17,6 +17,25 @@ class ServicesController < ApplicationController
   rescue_from(JsonMessage::Error) {|e| render :status => 400, :json =>  {:errors => e.to_s}}
   rescue_from(ActiveRecord::RecordInvalid) {|e| render :status => 400, :json =>  {:errors => e.to_s}}
 
+  # List all the offerings
+  def list
+    svcs = Service.active_services.select {|svc| svc.visible_to_user?(user)}
+    CloudController.logger.debug("Global service listing found #{svcs.length} services.")
+
+    ret = {}
+    svcs.each do |svc|
+      svc_type = svc.synthesize_service_type
+      ret[svc_type] ||= {}
+      ret[svc_type][svc.name] ||= {}
+      svc_provider = svc.provider || "core"
+      ret[svc_type][svc.name][svc_provider] ||= {}
+      ret[svc_type][svc.name][svc_provider][svc.version] ||= {}
+      ret[svc_type][svc.name][svc_provider][svc.version] = svc.hash_to_service_offering
+    end
+
+    render :json => ret
+  end
+
   # Registers a new service offering with the CC
   #
   def create
@@ -26,7 +45,7 @@ class ServicesController < ApplicationController
     # Should we worry about a race here?
 
     success = nil
-    svc = Service.find_by_label(req.label)
+    svc = Service.find_by_label_and_provider(req.label, req.provider)
     if svc
       raise CloudError.new(CloudError::FORBIDDEN) unless svc.verify_auth_token(@service_auth_token)
       attrs = req.extract.dup
@@ -95,7 +114,7 @@ class ServicesController < ApplicationController
 
   # Returns the provisioned and bound handles for a service provider
   def list_handles
-    svc = Service.find_by_label(params[:label])
+    svc = Service.find_by_label_and_provider(params[:label], params[:provider])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc
     raise CloudError.new(CloudError::FORBIDDEN) unless svc.verify_auth_token(@service_auth_token)
 
@@ -143,7 +162,7 @@ class ServicesController < ApplicationController
   # Get a service offering on the CC
   #
   def get
-    svc = Service.find_by_label(params[:label])
+    svc = Service.find_by_label_and_provider(params[:label], params[:provider])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc
     raise CloudError.new(CloudError::FORBIDDEN) unless svc.verify_auth_token(@service_auth_token)
     render :json => svc.hash_to_service_offering
@@ -152,7 +171,7 @@ class ServicesController < ApplicationController
   # Unregister a service offering with the CC
   #
   def delete
-    svc = Service.find_by_label(params[:label])
+    svc = Service.find_by_label_and_provider(params[:label], params[:provider])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc
     raise CloudError.new(CloudError::FORBIDDEN) unless svc.verify_auth_token(@service_auth_token)
 
@@ -166,7 +185,7 @@ class ServicesController < ApplicationController
   def provision
     req = VCAP::Services::Api::CloudControllerProvisionRequest.decode(request_body)
 
-    svc = Service.find_by_label(req.label)
+    svc = Service.find_by_label_and_provider(req.label, req.provider)
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc && svc.visible_to_user?(user, req.plan)
 
     cfg = ServiceConfig.provision(svc, user, req.name, req.plan, req.plan_option)
@@ -182,7 +201,7 @@ class ServicesController < ApplicationController
   # Deletes a previously provisioned instance of a service
   #
   def unprovision
-    cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
+    cfg = ServiceConfig.find_by_user_id_and_alias(user.id, params[:id])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
     raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 

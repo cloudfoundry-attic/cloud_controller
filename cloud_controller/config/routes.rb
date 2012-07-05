@@ -38,11 +38,12 @@ CloudController::Application.routes.draw do
   post   'staging/droplet/:id/:upload_id' => 'staging#upload_droplet', :as => :upload_droplet
   get    'staging/app/:id'                => 'staging#download_app',   :as => :download_unstaged_app
 
+  get    'services/v1/offerings'                     => 'services#list',           :as => :service_list
   post   'services/v1/offerings'                     => 'services#create',         :as => :service_create
-  delete 'services/v1/offerings/:label'              => 'services#delete',         :as => :service_delete,         :label => /[^\/]+/
-  get    'services/v1/offerings/:label'              => 'services#get',            :as => :service_get,            :label => /[^\/]+/
-  get    'services/v1/offerings/:label/handles'      => 'services#list_handles',   :as => :service_list_handles,   :label => /[^\/]+/
-  post   'services/v1/offerings/:label/handles/:id'  => 'services#update_handle',  :as => :service_update_handle,  :label => /[^\/]+/
+  delete 'services/v1/offerings/:label(/:provider)'              => 'services#delete',         :as => :service_delete,         :label => /[^\/]+/, :provider => /[^\/]+/
+  get    'services/v1/offerings/:label(/:provider)'              => 'services#get',            :as => :service_get,            :label => /[^\/]+/, :provider => /[^\/]+/
+  get    'services/v1/offerings/:label(/:provider)/handles'      => 'services#list_handles',   :as => :service_list_handles,   :label => /[^\/]+/, :provider => /[^\/]+/
+  post   'services/v1/offerings/:label(/:provider)/handles/:id'  => 'services#update_handle',  :as => :service_update_handle,  :label => /[^\/]+/, :provider => /[^\/]+/
   post   'services/v1/configurations'                => 'services#provision',      :as => :service_provision
   delete 'services/v1/configurations/:id'            => 'services#unprovision',    :as => :service_unprovision,    :id    => /[^\/]+/
   post   'services/v1/bindings'                      => 'services#bind',           :as => :service_bind

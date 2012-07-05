@@ -33,6 +33,8 @@ class DefaultController < ApplicationController
 
     ret = {}
     svcs.each do |svc|
+      # Igonre the offering that provider is not core
+      next if !svc.provider.nil? && svc.provider != "core"
       svc_type = svc.synthesize_service_type
       ret[svc_type] ||= {}
       ret[svc_type][svc.name] ||= {}
