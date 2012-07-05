@@ -50,7 +50,7 @@ class LegacyServicesController < ApplicationController
     @event_args = [req.vendor, req.name]
 
     label = req.vendor + "-" + req.version
-    svc = ::Service.find_by_label(label)
+    svc = ::Service.find_by_label_and_provider(label, req.provider || req.vendor)
     # Legacy api fell back to matching by vendor if no version matched
     svc ||= ::Service.find_by_name(req.vendor)
 

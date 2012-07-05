@@ -38,6 +38,7 @@ CloudController::Application.routes.draw do
   post   'staging/droplet/:id/:upload_id' => 'staging#upload_droplet', :as => :upload_droplet
   get    'staging/app/:id'                => 'staging#download_app',   :as => :download_unstaged_app
 
+  get    'services/v1/offerings'                     => 'services#list',           :as => :service_list
   post   'services/v1/offerings'                     => 'services#create',         :as => :service_create
   delete 'services/v1/offerings/:label'              => 'services#delete',         :as => :service_delete,         :label => /[^\/]+/
   get    'services/v1/offerings/:label'              => 'services#get',            :as => :service_get,            :label => /[^\/]+/

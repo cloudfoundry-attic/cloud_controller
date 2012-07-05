@@ -5,7 +5,7 @@ class Service < ActiveRecord::Base
   has_many :service_configs, :dependent => :destroy
   has_many :service_bindings, :through => :service_configs
   validates_presence_of :label, :url, :token
-  validates_uniqueness_of :label
+  # validates_uniqueness_of :label
 
   validates_format_of :url, :with => URI::regexp(%w(http https))
   validates_format_of :info_url, :with => URI::regexp(%w(http https)), :allow_nil => true
@@ -158,7 +158,8 @@ class Service < ActiveRecord::Base
 
   def verify_auth_token(token)
     if is_builtin?
-      (AppConfig[:builtin_services][self.name.to_sym][:token] == token)
+      key = self.provider ? self.name + "-" + self.provider : self.name
+      (AppConfig[:builtin_services][key.to_sym][:token] == token)
     else
       (self.token == token)
     end

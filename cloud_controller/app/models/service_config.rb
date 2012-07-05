@@ -192,6 +192,7 @@ class ServiceConfig < ActiveRecord::Base
     { :name       => self.alias,
       :type       => self.service.synthesize_service_type,
       :vendor     => self.service.name,
+      :provider => self.service.provider || "core",
       :version    => self.service.version,
       :tier       => self.plan,
       :properties => self.service.binding_options || {},
