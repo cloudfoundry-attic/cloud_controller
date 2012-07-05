@@ -32,12 +32,19 @@ class DefaultController < ApplicationController
     CloudController.logger.debug("Global service listing found #{svcs.length} services.")
 
     ret = {}
+    svc_count = Hash.new(0)
     svcs.each do |svc|
-      svc_type = svc.synthesize_service_type
-      ret[svc_type] ||= {}
-      ret[svc_type][svc.name] ||= {}
-      ret[svc_type][svc.name][svc.version] ||= {}
-      ret[svc_type][svc.name][svc.version] = svc.as_legacy(user)
+      svc_count[svc.name] = svc_count[svc.name] + 1
+    end
+    svcs.each do |svc|
+      # Just return core services or the service with only one provider
+      if svc.provider.nil? || svc.provider == "core" || svc_count[svc.name] == 1
+        svc_type = svc.synthesize_service_type
+        ret[svc_type] ||= {}
+        ret[svc_type][svc.name] ||= {}
+        ret[svc_type][svc.name][svc.version] ||= {}
+        ret[svc_type][svc.name][svc.version] = svc.as_legacy(user)
+      end
     end
 
     render :json => ret

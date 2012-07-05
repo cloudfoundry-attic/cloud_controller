@@ -133,7 +133,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.string   "provider"
   end
 
-  add_index "services", ["name", "version"], :name => "index_services_on_name_and_version", :unique => true
+  add_index "services", ["name", "version", "provider"], :name => "index_services_on_name_and_version_and_provider", :unique => true
 
   create_table "users", :force => true do |t|
     t.string   "email"
