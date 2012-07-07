@@ -1,3 +1,4 @@
+require 'fileutils'
 require 'json_message'
 require 'services/api'
 
@@ -6,7 +7,7 @@ require 'services/api'
 class ServicesController < ApplicationController
   include ServicesHelper
 
-  before_filter :validate_content_type
+  before_filter :validate_content_type, :except => [:import_from_data]
   before_filter :require_service_auth_token, :only => [:create, :get, :delete, :update_handle, :list_handles, :list_brokered_services]
   before_filter :require_user, :only => [:provision, :bind, :bind_external, :unbind, :unprovision,
                                          :create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
@@ -274,8 +275,8 @@ class ServicesController < ApplicationController
     render :json => result.extract
   end
 
-  # import serialized data to an instance from url
-  #
+    # import serialized data to an instance from url
+    #
   def import_from_url
     req = VCAP::Services::Api::SerializedURL.decode(request_body)
 
@@ -288,22 +289,50 @@ class ServicesController < ApplicationController
     render :json => result.extract
   end
 
-  # import serialized data to an instance from request data
+  # get uploaded serialized data file
+  def get_uploaded_data_file
+    file = nil
+    CloudController.logger.debug("get_uploaded_data_file #{params.inspect}")
+    if CloudController.use_nginx
+      path = params[:data_file_path]
+      wrapper_class = Class.new do
+        attr_accessor :path
+      end
+      file = wrapper_class.new
+      file.path = path
+    else
+      file = params[:data_file]
+    end
+    file
+  end
+
+  # import serialized data to an instance from uploaded file
   #
   def import_from_data
+    data_file = get_uploaded_data_file
     max_upload_size = AppConfig[:service_lifecycle][:max_upload_size] || 1
     max_upload_size = max_upload_size * 1024 * 1024
-    raise CloudError.new(CloudError::BAD_REQUEST) unless request.content_length < max_upload_size
-
-    req = VCAP::Services::Api::SerializedData.decode(request_body)
+    unless data_file && data_file.path && File.exist?(data_file.path) && File.size(data_file.path) < max_upload_size
+      if data_file && data_file.path && File.exist?(data_file.path)
+        CloudController.logger.debug("import_from_data - Bad request: uploaded file #{data_file.path} (#{File.size(data_file.path)}) exceeeded the size limitation #{max_upload_size}B")
+      else
+        CloudController.logger.debug("import_from_data - Bad request: uploaded file is not found")
+      end
+      raise CloudError.new(CloudError::BAD_REQUEST)
+    end
 
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
     raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
-    result = cfg.import_from_data req
-
+    # upload data file to ser_data_server and get the url of the uploaded file
+    upload_url = AppConfig[:service_lifecycle][:upload_url]
+    upload_url ="http://#{upload_url}" unless (upload_url.index('http://') == 0 || upload_url.index('https://') == 0)
+    req = {:upload_url => upload_url, :upload_token => AppConfig[:service_lifecycle][:upload_token_secret], :data_file_path => data_file.path}
+    result = cfg.import_from_url (cfg.import_from_data req)
     render :json => result.extract
+  ensure
+    FileUtils.rm_rf(data_file.path) if data_file && data_file.path && File.exist?(data_file.path)
   end
 
   # Get job information
