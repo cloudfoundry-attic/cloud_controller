@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120706172319) do
+ActiveRecord::Schema.define(:version => 20120712062308) do
 
   create_table "app_collaborations", :force => true do |t|
     t.integer  "app_id"
@@ -75,6 +75,19 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
 
   add_index "routes", ["app_id"], :name => "index_routes_on_app_id"
   add_index "routes", ["url"], :name => "index_routes_on_url"
+
+  create_table "serialization_data_servers", :force => true do |t|
+    t.string   "host"
+    t.string   "port"
+    t.string   "external"
+    t.string   "token"
+    t.boolean  "active",     :default => true
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "serialization_data_servers", ["external"], :name => "index_serialization_data_servers_on_external"
+  add_index "serialization_data_servers", ["host"], :name => "index_serialization_data_servers_on_host"
 
   create_table "service_bindings", :force => true do |t|
     t.integer  "service_config_id"

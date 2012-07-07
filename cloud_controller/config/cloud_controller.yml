@@ -154,6 +154,8 @@ service_broker:
 # lifecycle
 service_lifecycle:
   max_upload_size: 1 # in MB
+  upload_url: dl.vcap.me
+  upload_token_secret: dlfoosecret
 
 # Enable/disable starting apps in debug modes.
 allow_debug: true

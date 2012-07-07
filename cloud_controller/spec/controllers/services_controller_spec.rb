@@ -1332,15 +1332,28 @@ describe ServicesController do
           :start_time => "1"
           }.to_json
         )
-        req = VCAP::Services::Api::SerializedData.new(:data => 'raw_data' )
-        VCAP::Services::Api::ServiceGatewayClient.any_instance.stubs(:import_from_data).with(anything).returns job
 
-        put_msg :import_from_data, :id => @cfg.name do
-          req
+        sds = SerializationDataServer.new
+        sds.host="127.0.0.1"
+        sds.port="8080"
+        sds.external=AppConfig[:service_lifecycle][:upload_url]
+        sds.token=AppConfig[:service_lifecycle][:upload_url]
+        sds.active=true
+        sds.save
+
+        url = "http://api.cloudfoundry"
+        VCAP::Services::Api::ServiceGatewayClient.any_instance.stubs(:import_from_url).with(anything).returns job
+        VCAP::Services::Api::SDSClient.any_instance.stubs(:import_from_data).with(anything).returns VCAP::Services::Api::SerializedURL.new(:url => url)
+        begin
+          tmp_file = Tempfile.new('foo_import_from_data')
+          put_file :import_from_data, :id => @cfg.name, :data_file => tmp_file
+          puts response.body
+          response.status.should == 200
+          resp = Yajl::Parser.parse(response.body)
+          resp["job_id"].should == "abc"
+        ensure
+          FileUtils.rm_rf(tmp_file.path) if tmp_file
         end
-        response.status.should == 200
-        resp = Yajl::Parser.parse(response.body)
-        resp["job_id"].should == "abc"
       end
     end
 
@@ -1432,6 +1445,10 @@ describe ServicesController do
     msg = yield
     request.env['RAW_POST_DATA'] = msg.encode
     post(*args)
+  end
+
+  def put_file(*args)
+    put(*args)
   end
 
   def put_msg(*args, &blk)

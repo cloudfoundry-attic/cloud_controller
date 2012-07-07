@@ -1,4 +1,6 @@
+require 'fileutils'
 require 'json_message'
+require 'uri'
 require 'services/api'
 
 # TODO(mjp): Split these into separate controllers (user facing vs gateway facing, along with tests)
@@ -6,13 +8,14 @@ require 'services/api'
 class ServicesController < ApplicationController
   include ServicesHelper
 
-  before_filter :validate_content_type
+  before_filter :validate_content_type, :except => [:import_from_data]
   before_filter :require_service_auth_token, :only => [:create, :get, :delete, :update_handle, :list_handles, :list_brokered_services]
+  before_filter :require_sds_auth_token, :only => [:register_sds]
   before_filter :require_user, :only => [:provision, :bind, :bind_external, :unbind, :unprovision,
                                          :create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
                                          :serialized_url, :create_serialized_url, :import_from_url, :import_from_data, :job_info]
   before_filter :require_lifecycle_extension, :only => [:create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
-                                         :serialized_url, :create_serialized_url, :import_from_url, :import_from_data, :job_info]
+                                         :serialized_url, :create_serialized_url, :import_from_url, :register_sds, :import_from_data, :job_info]
   before_filter :unify_provider, :only => [:get, :delete, :update_handle, :list_handles]
 
   rescue_from(JsonMessage::Error) {|e| render :status => 400, :json =>  {:errors => e.to_s}}
@@ -296,8 +299,8 @@ class ServicesController < ApplicationController
     render :json => result.extract
   end
 
-  # import serialized data to an instance from url
-  #
+    # import serialized data to an instance from url
+    #
   def import_from_url
     req = VCAP::Services::Api::SerializedURL.decode(request_body)
 
@@ -310,22 +313,59 @@ class ServicesController < ApplicationController
     render :json => result.extract
   end
 
-  # import serialized data to an instance from request data
+  # register serialization_data_server
+  #
+  def register_sds
+    req = VCAP::Services::Api::ServiceRegisterSdsRequest.decode(request_body)
+    CloudController.logger.debug("Register SDS request: #{req.extract.inspect}")
+
+    success = nil
+    sds = SerializationDataServer.find_by_host(req.host)
+    if sds
+      sds.update_attributes!(req.extract)
+    else
+      sds = SerializationDataServer.new(req.extract)
+      sds.save!
+    end
+
+    render :json => {}
+  end
+
+  # import serialized data to an instance from uploaded file
   #
   def import_from_data
-    max_upload_size = AppConfig[:service_lifecycle][:max_upload_size] || 1
-    max_upload_size = max_upload_size * 1024 * 1024
-    raise CloudError.new(CloudError::BAD_REQUEST) unless request.content_length < max_upload_size
-
-    req = VCAP::Services::Api::SerializedData.decode(request_body)
-
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
     raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
-    result = cfg.import_from_data req
+    data_file = get_uploaded_data_file
+    max_upload_size = AppConfig[:service_lifecycle][:max_upload_size] || 1
+    max_upload_size = max_upload_size * 1024 * 1024
+    unless data_file && data_file.path && File.exist?(data_file.path) && File.size(data_file.path) < max_upload_size
+      if data_file && data_file.path && File.exist?(data_file.path)
+        CloudController.logger.debug("import_from_data - Bad request: uploaded file #{data_file.path} (#{File.size(data_file.path)}) exceeeded the size limitation #{max_upload_size}B")
+      else
+        CloudController.logger.debug("import_from_data - Bad request: uploaded file is not found")
+      end
+      raise CloudError.new(CloudError::BAD_REQUEST)
+    end
 
+    # upload data file to serialization_data_server and get the url of the uploaded file
+    upload_url = AppConfig[:service_lifecycle][:upload_url]
+
+    # select the suitable serialization_data_server according to upload_url
+    active_sds = SerializationDataServer.active_sds_by_external(upload_url)
+    target_sds ||= (active_sds.sample if active_sds && active_sds.count > 0)
+    raise CloudError.new(CloudError::SDS_NOT_FOUND) unless target_sds
+
+    upload_url ="http://#{upload_url}" unless (upload_url.index('http://') == 0 || upload_url.index('https://') == 0)
+    upload_url = target_sds.internal(upload_url)
+
+    req = {:upload_url => upload_url, :upload_token => AppConfig[:service_lifecycle][:upload_token_secret], :data_file_path => data_file.path}
+    result = cfg.import_from_url (cfg.import_from_data req)
     render :json => result.extract
+  ensure
+    FileUtils.rm_rf(data_file.path) if data_file && data_file.path && File.exist?(data_file.path)
   end
 
   # Get job information
@@ -407,10 +447,33 @@ class ServicesController < ApplicationController
 
   protected
 
+  # get uploaded serialized data file
+  def get_uploaded_data_file
+    file = nil
+    CloudController.logger.debug("get_uploaded_data_file #{params.inspect}")
+    if CloudController.use_nginx
+      path = params[:data_file_path]
+      wrapper_class = Class.new do
+        attr_accessor :path
+      end
+      file = wrapper_class.new
+      file.path = path
+    else
+      file = params[:data_file]
+    end
+    file
+  end
+
   def require_service_auth_token
     hdr = VCAP::Services::Api::GATEWAY_TOKEN_HEADER.upcase.gsub(/-/, '_')
     @service_auth_token = request.headers[hdr]
     raise CloudError.new(CloudError::FORBIDDEN) unless @service_auth_token
+  end
+
+  def require_sds_auth_token
+    hdr = VCAP::Services::Api::SDS_UPLOAD_TOKEN_HEADER.upcase.gsub(/-/, '_')
+    @sds_upload_token = request.headers[hdr]
+    raise CloudError.new(CloudError::FORBIDDEN) unless @sds_upload_token && @sds_upload_token == AppConfig[:service_lifecycle][:upload_token_secret]
   end
 
   def require_lifecycle_extension
