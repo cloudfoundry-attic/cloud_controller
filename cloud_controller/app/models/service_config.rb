@@ -107,6 +107,12 @@ class ServiceConfig < ActiveRecord::Base
     ServiceConfig.unprovision(service, name)
   end
 
+  def handle_sds_error(e)
+    CloudController.logger.error("Error talking to serialization_data_server: #{e}")
+    CloudController.logger.error(e)
+    raise CloudError.new(CloudError::SDS_ERROR, "#{e.message}")
+  end
+
   def handle_lifecycle_error(e)
     CloudController.logger.error("Error talking to gateway: #{e}")
     CloudController.logger.error(e)
@@ -174,10 +180,10 @@ class ServiceConfig < ActiveRecord::Base
   end
 
   def import_from_data req
-    client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
-    client.import_from_data(:service_id => name, :msg => req)
+    client = VCAP::Services::Api::SDSClient.new(req[:upload_url], req[:upload_token], req[:upload_timeout])
+    client.import_from_data(:service =>service.name , :service_id => name, :msg => req[:data_file_path])
   rescue => e
-    handle_lifecycle_error(e)
+    handle_sds_error(e)
   end
 
   def job_info job_id

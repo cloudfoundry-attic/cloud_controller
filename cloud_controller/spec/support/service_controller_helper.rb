@@ -1,4 +1,14 @@
 # Shim so that we can stub/mock out desired return values for our forked
+require 'net/telnet'
+
+class Net::Telnet
+  def initialize(opts)
+  end
+
+  def close
+  end
+end
+
 # gateway
 class ServiceProvisionerStub
   def provision_service(version, plan)
