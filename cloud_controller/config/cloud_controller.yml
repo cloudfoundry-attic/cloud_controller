@@ -154,6 +154,9 @@ service_broker:
 # lifecycle
 service_lifecycle:
   max_upload_size: 1 # in MB
+  upload_token: dlfoosecret
+  serialization_data_server:
+  - 127.0.0.1:8080
 
 # Enable/disable starting apps in debug modes.
 allow_debug: true

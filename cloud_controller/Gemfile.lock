@@ -37,19 +37,6 @@ GIT
       thor
 
 GIT
-  remote: https://github.com/cloudfoundry/vcap-common.git
-  revision: 5334b662238f14ed2ddbb80f524dcf8cdd0eaadf
-  ref: 5334b662
-  specs:
-    vcap_common (2.0.0)
-      eventmachine
-      membrane
-      nats (~> 0.4.22.beta.8)
-      posix-spawn (~> 0.3.6)
-      thin (~> 1.3.1)
-      yajl-ruby (~> 0.8.3)
-
-GIT
   remote: https://github.com/cloudfoundry/vcap-staging.git
   revision: 910bda9fa69504fbe2202edceb8d0b7d1d253fb7
   ref: 910bda9f
@@ -118,6 +105,7 @@ GEM
       abstract (>= 1.0.0)
     hiredis (0.3.2)
     http_parser.rb (0.5.1)
+    httpclient (2.2.5)
     i18n (0.5.0)
     interact (0.4.3)
     json (1.7.3)
@@ -128,13 +116,14 @@ GEM
       i18n (>= 0.4.0)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
-    membrane (0.0.1)
+    membrane (0.0.2)
     mime-types (1.18)
     mocha (0.9.12)
-    nats (0.4.22)
-      daemons (>= 1.1.4)
+    multipart-post (1.1.5)
+    nats (0.4.24)
+      daemons (>= 1.1.5)
       eventmachine (>= 0.12.10)
-      json_pure (>= 1.6.1)
+      json_pure (>= 1.7.3)
       thin (>= 1.3.1)
     nokogiri (1.4.7)
     pg (0.10.1)
@@ -195,6 +184,17 @@ GEM
       polyglot (>= 0.3.1)
     tzinfo (0.3.33)
     uuidtools (2.1.2)
+    vcap_common (2.0.5)
+      em-http-request (~> 1.0.0.beta3)
+      eventmachine
+      httpclient
+      membrane (~> 0.0.2)
+      mime-types
+      multipart-post
+      nats (~> 0.4.22.beta.8)
+      posix-spawn (~> 0.3.6)
+      thin (~> 1.3.1)
+      yajl-ruby (~> 0.8.3)
     yajl-ruby (0.8.3)
 
 PLATFORMS
@@ -226,7 +226,7 @@ DEPENDENCIES
   stager-client (~> 0.0.2)!
   thin
   uuidtools (~> 2.1.2)
-  vcap_common!
+  vcap_common (~> 2.0.5)
   vcap_logging!
   vcap_staging (~> 0.1.61)!
   yajl-ruby (~> 0.8.3)
