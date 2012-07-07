@@ -67,6 +67,8 @@ CloudController::Application.routes.draw do
   put    'services/v1/configurations/:id/serialized/data'    => 'services#import_from_data',     :as => :service_import_from_data,      :id   => /[^\/]+/
   get    'services/v1/configurations/:id/jobs/:job_id'       => 'services#job_info',             :as => :service_job_info,              :id   => /[^\/]+/, :job_id => /[^\/]+/
 
+  # Serialization Data Server apis
+  post   'services/v1/sds'                     => 'services#register_sds',                   :as => :service_register_sds
 
   # Legacy services implementation (for old vmc)
   get     'services'        => 'legacy_services#list',        :as => :legacy_service_list
