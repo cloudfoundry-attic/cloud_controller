@@ -113,6 +113,9 @@ describe HealthManager do
     ::User.destroy_all
     ::App.destroy_all
 
+    StagingPlugin.stub!(:runtime_ids).and_return(['ruby19'])
+    StagingPlugin.stub!(:framework_ids).and_return(['sinatra'])
+
     build_user_and_app
   end
 

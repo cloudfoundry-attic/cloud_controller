@@ -549,7 +549,7 @@ class AppManager
 
   def new_message
     data = {:droplet => app.id, :name => app.name, :uris => app.mapped_urls}
-    data[:runtime] = app.runtime
+    data[:runtime] = StagingPlugin.runtime(app.runtime)
     data[:framework] = app.framework
     data[:prod] = app.prod
     data[:sha1] = app.staged_package_hash

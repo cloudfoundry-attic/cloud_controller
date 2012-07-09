@@ -16,6 +16,8 @@ describe DefaultController do
       u.should be_valid
       @user = u
 
+      StagingPlugin.stubs(:runtime_ids).returns(['ruby18'])
+      StagingPlugin.stubs(:framework_ids).returns(['sinatra'])
       a = App.new(
         :owner => u,
         :name => 'foobar',

@@ -81,6 +81,11 @@ describe 'Health Manager' do
     FileUtils.rm_rf(@test_dir)
   end
 
+  before :each do
+    StagingPlugin.stub!(:runtime_ids).and_return(['ruby19'])
+    StagingPlugin.stub!(:framework_ids).and_return(['sinatra'])
+  end
+
   describe 'when running' do
     before :each do
       @helper.delete_all

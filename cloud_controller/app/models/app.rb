@@ -2,6 +2,25 @@ require 'set'
 require 'services/api'
 require 'openssl'
 
+class FrameworkValidator < ActiveModel::EachValidator
+  def validate_each(record, attribute, value)
+    valid_frameworks = StagingPlugin.framework_ids
+    valid_frameworks << "unknown"
+    unless valid_frameworks.include? value
+      record.errors[attribute] << "The framework is not valid"
+    end
+  end
+end
+
+class RuntimeValidator < ActiveModel::EachValidator
+  def validate_each(record, attribute, value)
+    valid_runtimes = StagingPlugin.runtime_ids
+      unless valid_runtimes.include? value
+        record.errors[attribute] << "The runtime is not valid"
+      end
+  end
+end
+
 class App < ActiveRecord::Base
   belongs_to :owner, :class_name => 'User' # By default, whomever created the app
   has_many :app_collaborations, :dependent => :destroy
@@ -24,16 +43,13 @@ class App < ActiveRecord::Base
   AppStates = %w[STOPPED STARTED]
   PackageStates = %w[PENDING STAGED FAILED]
 
-  Runtimes = %w[ruby18 ruby19 java java7 node node06 node08 php erlangR14B02 python2]
-  Frameworks = %w[sinatra rack rails3 java_web spring grails node php otp_rebar lift wsgi django standalone play unknown]
-
-  validates_presence_of :name, :framework, :runtime
+  validates_presence_of :name
 
   validates_format_of :name, :with => /^[\w-]+$/ # Don't allow periods, !, etc
 
   # TODO - Update vmc client to use reasonable strings for these.
-  validates_inclusion_of :framework, :in => Frameworks
-  validates_inclusion_of :runtime, :in => Runtimes & AppConfig[:runtimes].keys.map(&:to_s)
+  validates :framework, :presence => true, :framework => true
+  validates :runtime, :presence => true, :runtime => true
   validates_inclusion_of :state, :in => AppStates
   validates_inclusion_of :package_state, :in => PackageStates
 
