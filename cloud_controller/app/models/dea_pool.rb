@@ -27,7 +27,7 @@ class DEAPool
          end
 
          if  (dea[:available_memory] >= required_mem) &&
-             (dea[:runtimes].member? required_runtime) &&
+             (dea[:runtimes].member? required_runtime['name']) &&
              # non-prod DEAs can host either prod or non-prod apps
              # prod DEAs can host prod apps
              (!dea[:prod] || prod)
