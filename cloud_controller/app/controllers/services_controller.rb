@@ -66,6 +66,7 @@ class ServicesController < ApplicationController
       attrs[:timeout] = nil unless attrs.has_key?(:timeout)
       attrs[:provider] = nil unless attrs.has_key?(:provider)
       attrs[:provider] = nil if attrs[:provider] == "core"
+      attrs[:default_plan] = nil unless attrs.has_key?(:default_plan)
 
       svc.update_attributes!(attrs)
     else

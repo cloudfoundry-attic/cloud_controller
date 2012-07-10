@@ -20,7 +20,7 @@ class Service < ActiveRecord::Base
   serialize :binding_options
   serialize :acls
 
-  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider
+  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider, :default_plan
 
   def self.active_services
     where("active = ?", true)
@@ -134,6 +134,7 @@ class Service < ActiveRecord::Base
       :type    => self.synthesize_service_type,
       :description => self.description || '-',
       :provider => self.provider,
+      :default_plan => self.default_plan,
     }
   end
 
@@ -182,6 +183,7 @@ class Service < ActiveRecord::Base
     svc_offering[:active]          = self.active          if self.active
     svc_offering[:timeout]         = self.timeout         if self.timeout
     svc_offering[:provider]        = self.provider        if self.provider
+    svc_offering[:default_plan]    = self.default_plan    if self.default_plan
     return svc_offering
   end
 
