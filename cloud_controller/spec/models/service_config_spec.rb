@@ -123,31 +123,28 @@ describe ServiceConfig do
       svc.save
       svc.should be_valid
 
+
       # default version, backward compatible logic, should be removed in the future
+      data = { 'plan' => 'free'}
+
       cfg = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => 'foobar',
-                             :data => {
-                                :plan => 'free',
-                              })
+                             :data => data)
       cfg.save
+      cfg.should be_valid
+
+      cfg = ServiceConfig.find_by_alias('foobar')
       cfg.as_legacy[:version].should == "1.0"
 
-      # version 1.0
-      cfg10 = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => 'foobar',
-                             :data => {
-                                :plan => 'free',
-                                :version => "1.0"
-                              })
-      cfg10.save
-      cfg10.as_legacy[:version].should == "1.0"
+      %w(1.0 2.0).each do |version|
+        data['version'] = version if version
+        cfg = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => "foobar#{version}",
+                                :data => data)
+        cfg.save
+        cfg.should be_valid
 
-      # instance of version 2.0
-      cfg20 = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => 'foobar20',
-                             :data => {
-                                :plan => 'free',
-                                :version => "2.0"
-                              })
-      cfg20.save
-      cfg20.as_legacy[:version].should == "2.0"
+        cfg = ServiceConfig.find_by_alias("foobar#{version}")
+        cfg.as_legacy[:version].should == version
+      end
     end
   end
 end

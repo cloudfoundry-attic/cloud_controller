@@ -197,7 +197,7 @@ class ServiceConfig < ActiveRecord::Base
       :type       => self.service.synthesize_service_type,
       :vendor     => self.service.name,
       # backward compatible, service.version will be removed in the future.
-      :version    => self.data && self.data[:version] || self.service.version,
+      :version    => self.data && self.data["version"] || self.service.version,
       :tier       => self.plan,
       :properties => self.service.binding_options || {},
       :meta => {
