@@ -45,6 +45,7 @@ class ServicesController < ApplicationController
       # Similar to acls, do the same for timeout, provider
       attrs[:timeout] = nil unless attrs.has_key?(:timeout)
       attrs[:provider] = nil unless attrs.has_key?(:provider)
+      attrs[:default_plan] = nil unless attrs.has_key?(:default_plan)
 
       svc.update_attributes!(attrs)
     else
