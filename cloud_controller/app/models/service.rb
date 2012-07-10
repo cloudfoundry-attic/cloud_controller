@@ -27,7 +27,7 @@ class Service < ActiveRecord::Base
   # for example {"current" => "1.0", "next" => "2.0"}
   serialize :version_aliases
 
-  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider, :supported_versions, :version_aliases
+  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider, :supported_versions, :version_aliases, :default_plan
 
   def set_default_values
     self.supported_versions ||= []
@@ -146,6 +146,7 @@ class Service < ActiveRecord::Base
       :type    => self.synthesize_service_type,
       :description => self.description || '-',
       :provider => self.provider,
+      :default_plan => self.default_plan,
     }
   end
 
@@ -196,6 +197,7 @@ class Service < ActiveRecord::Base
     svc_offering[:provider]        = self.provider        if self.provider
     svc_offering[:supported_versions] = self.supported_versions if self.supported_versions
     svc_offering[:version_aliases]    = self.version_aliases    if self.version_aliases
+    svc_offering[:default_plan]    = self.default_plan    if self.default_plan
     return svc_offering
   end
 

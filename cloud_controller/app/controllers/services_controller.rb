@@ -68,6 +68,7 @@ class ServicesController < ApplicationController
         attrs[k] = nil unless attrs.has_key?(k)
       end
       attrs[:provider] = nil if attrs[:provider] == "core"
+      attrs[:default_plan] = nil unless attrs.has_key?(:default_plan)
 
       svc.update_attributes!(attrs)
     else
