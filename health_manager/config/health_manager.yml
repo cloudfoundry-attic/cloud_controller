@@ -64,6 +64,14 @@ intervals:
   # started/restarted
   stable_state:         60
 
+  # spindown: stop non-prod apps if they are inactive for a period
+  # longer then specified by this parameter. Negative values disable
+  # spindown functionality (default).
+  # WARNING: only enable this option if your routers are configured to
+  # publish activity information, otherwise all non-prod apps will be
+  # spundown.
+  inactivity_period_for_spindown: -1
+
 #number of start requests send each second (subject to EM timer limitations)
 #default value is 50.
 dequeueing_rate: 50

@@ -207,6 +207,65 @@ describe HealthManager do
     stats[:runtimes]['ruby19'][:running_instances].should == 3
   end
 
+  describe "spindown" do
+
+    before(:each) do
+      # ensure spindown disabled by default
+      @hm.spindown_inactive_apps.should be_false
+
+      # now create hm with spindown enabled
+      @config['intervals']['inactivity_period_for_spindown'] = 1
+      @hm = HealthManager.new(@config)
+      @hm.update_droplet(@app)
+      droplet[:last_updated] -= 2 #to satisfy quiscence requirement
+
+      @hm.spindown_inactive_apps.should be_true
+    end
+
+    def droplet
+      @hm.droplets[@app.id]
+    end
+
+    def activity_message
+      Zlib::Deflate.deflate([@app.id].to_json)
+    end
+
+    it "should update last_activity timestamp" do
+      droplet[:last_activity].should be_nil
+      @hm.process_active_apps_message(activity_message)
+      droplet[:last_activity].should_not be_nil
+      droplet[:last_activity].should <= @hm.now
+    end
+
+    it "should spindown app with no acitvity at all" do
+      should_publish_to_nats('cloudcontrollers.hm.requests', {
+                               :droplet =>  @app.id,
+                               :op => :SPINDOWN
+                             })
+      @hm.analyze_app(@app.id, droplet, make_stats)
+    end
+
+    it "should not spindown an app with activity" do
+      @hm.process_active_apps_message(activity_message)
+      @hm.analyze_app(@app.id, droplet, make_stats)
+    end
+
+    it "should not spindown inactive app with 'prod' flag set to true" do
+      droplet[:prod] = true
+      @hm.analyze_app(@app.id, droplet, make_stats)
+    end
+
+    it "should spindown an app with stale activity" do
+      should_publish_to_nats('cloudcontrollers.hm.requests', {
+                               :droplet =>  @app.id,
+                               :op => :SPINDOWN
+                             })
+      @hm.process_active_apps_message(activity_message)
+      sleep(2)
+      @hm.analyze_app(@app.id, droplet, make_stats)
+    end
+  end
+
   it "should update its internal state to reflect heartbeat messages" do
     droplet_entries = @hm.process_heartbeat_message(make_heartbeat_message.to_json)
 
