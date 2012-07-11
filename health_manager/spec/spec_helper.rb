@@ -7,6 +7,17 @@ require 'rspec'
 require 'health_manager'
 require 'fiber'
 
+
+class ::HealthManager
+  def now
+    @now || Time.now.to_i
+  end
+
+  def set_now(val)
+    @now = val
+  end
+end
+
 module Spec
   module Mocks
     module ArgumentMatchers

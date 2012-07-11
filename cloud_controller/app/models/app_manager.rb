@@ -182,6 +182,15 @@ class AppManager
         stop_msg = { :droplet => app.id, :instances => payload[:instances] }
         NATS.publish('dea.stop', Yajl::Encoder.encode(stop_msg))
       end
+    when /SPINDOWN/i
+      # Initial implementation simply stops the application,
+      # as if a "vmc stop" command was issued.
+      # Application would then need to be manually restarted.
+      # "Spinup" semantics and implementation TBD.
+      CloudController.logger.debug("[HealthManager] Spindown (stopping) app: #{app.id}")
+      app.state = 'STOPPED'
+      app.save!
+      stop_all
     end
   end
 
