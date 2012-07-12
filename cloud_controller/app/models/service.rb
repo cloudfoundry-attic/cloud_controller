@@ -1,6 +1,8 @@
 class Service < ActiveRecord::Base
   LABEL_REGEX = /^\S+-\S+$/
 
+  after_initialize :set_default_values
+
   # TODO - Blacklist of reserved names
   has_many :service_configs, :dependent => :destroy
   has_many :service_bindings, :through => :service_configs
@@ -19,8 +21,18 @@ class Service < ActiveRecord::Base
   serialize :plan_options
   serialize :binding_options
   serialize :acls
+  # supported_versions in array, like ["1.0", "2.0"]
+  serialize :supported_versions
+  # optional alias hash for service versions
+  # for example {"current" => "1.0", "next" => "2.0"}
+  serialize :version_aliases
 
-  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider
+  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider, :supported_versions, :version_aliases
+
+  def set_default_values
+    self.supported_versions ||= []
+    self.version_aliases ||= {}
+  end
 
   def self.active_services
     where("active = ?", true)
@@ -182,6 +194,8 @@ class Service < ActiveRecord::Base
     svc_offering[:active]          = self.active          if self.active
     svc_offering[:timeout]         = self.timeout         if self.timeout
     svc_offering[:provider]        = self.provider        if self.provider
+    svc_offering[:supported_versions] = self.supported_versions if self.supported_versions
+    svc_offering[:version_aliases]    = self.version_aliases    if self.version_aliases
     return svc_offering
   end
 
@@ -191,5 +205,17 @@ class Service < ActiveRecord::Base
     if cf_plan_id && !(cf_plan_id.is_a?(Hash) && plans.is_a?(Array) && (cf_plan_id.keys - plans).empty?)
       errors.add(:base, "cf_plan_id does not match plans")
     end
+  end
+
+  def support_version? version
+    # backward compatible, self.version will be removed.
+    (supported_versions.include? version) || (self.version == version)
+  end
+
+  def version_to_alias version
+    version_aliases.each do | k, v|
+      return k if v == version.to_s
+    end
+    nil
   end
 end

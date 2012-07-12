@@ -60,11 +60,13 @@ class ServicesController < ApplicationController
       # from private to public.  This issue is more general than just
       # :acls, but to avoid breaking anything as a side efffect, we do
       # this only for :acls.
-      attrs[:acls] = nil unless attrs.has_key?(:acls)
-
-      # Similar to acls, do the same for timeout, provider
-      attrs[:timeout] = nil unless attrs.has_key?(:timeout)
-      attrs[:provider] = nil unless attrs.has_key?(:provider)
+      #
+      # Similar to acls, timeout, provider, supported_versions
+      # and version_aliases attributes
+      %w(acls timeout provider supported_versions version_aliases).each do |k|
+        k = k.to_sym
+        attrs[k] = nil unless attrs.has_key?(k)
+      end
       attrs[:provider] = nil if attrs[:provider] == "core"
 
       svc.update_attributes!(attrs)
@@ -191,7 +193,20 @@ class ServicesController < ApplicationController
     svc = Service.find_by_label_and_provider(req.label, req.provider == "core" ? nil : req.provider)
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc && svc.visible_to_user?(user, req.plan)
 
-    cfg = ServiceConfig.provision(svc, user, req.name, req.plan, req.plan_option)
+    # override version in label if version is given in request.
+    # We support following Provision request and provision version 2.0 instance.
+    # {'label' => 'Service-1.0', 'version' => '2.0'}
+    # In the future, version info will be removed from label.
+    version = nil
+    if req.version
+      # translate alias to version in request
+      version = svc.version_aliases[req.version.to_s] || req.version
+      raise CloudError.new(CloudError::UNSUPPORTED_VERSION, req.version) unless svc.support_version? version
+    end
+
+    # backward compatible, svc.version will be removed.
+    version ||= svc.version
+    cfg = ServiceConfig.provision(svc, user, req.name, req.plan, req.plan_option, version)
 
     handle = {
       :service_id  => cfg.name,
