@@ -68,6 +68,7 @@ describe ServiceConfig do
       @alice = stub_everything(id:1, email:'alice@example.com').quacks_like(User.new)
       @bob = stub_everything(id:2, email:'bob@example.com').quacks_like(User.new)
       @service = stub_everything(id:1, label:'postgres-9').quacks_like(Service.new)
+      @version = '9'
     end
 
     it "should return a ServiceConfig" do
@@ -75,7 +76,7 @@ describe ServiceConfig do
         expects(:provision).returns(stub_everything)
 
       ServiceConfig.provision(
-        @service, @bob, 'foo', 'free-plan', 'plan option'
+        @service, @bob, 'foo', 'free-plan', 'plan option', @version
       ).should be_a(ServiceConfig)
     end
 
@@ -83,9 +84,9 @@ describe ServiceConfig do
       VCAP::Services::Api::ServiceGatewayClient.any_instance.
         expects(:provision).returns(stub_everything)
 
-      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
       expect {
-        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
       }.to raise_error
     end
 
@@ -93,8 +94,8 @@ describe ServiceConfig do
       VCAP::Services::Api::ServiceGatewayClient.any_instance.
         stubs(:provision).returns(stub_everything)
 
-      ServiceConfig.provision(@service, @alice, 'foo', 'free-plan', 'plan option')
-      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+      ServiceConfig.provision(@service, @alice, 'foo', 'free-plan', 'plan option', @version)
+      ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
     end
 
     # Yuck, this test is very whitebox-ish
@@ -109,8 +110,41 @@ describe ServiceConfig do
         expects(:unprovision).when(state.is("yes"))
 
       expect {
-        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option')
+        ServiceConfig.provision(@service, @bob, 'foo', 'free-plan', 'plan option', @version)
       }.to raise_error("Don't save")
+    end
+  end
+
+  describe "#as_legacy" do
+    it "should show the correct service version for multi versions service" do
+      svc = Service.new(:label => "foo-1.0", :url => "http://example.com", :token => 'bar',
+                        :supported_versions => ["1.0", "2.0"],
+                        :version_aliases => {"current" => "1.0"})
+      svc.save
+      svc.should be_valid
+
+
+      # default version, backward compatible logic, should be removed in the future
+      data = { 'plan' => 'free'}
+
+      cfg = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => 'foobar',
+                             :data => data)
+      cfg.save
+      cfg.should be_valid
+
+      cfg = ServiceConfig.find_by_alias('foobar')
+      cfg.as_legacy[:version].should == "1.0"
+
+      %w(1.0 2.0).each do |version|
+        data['version'] = version if version
+        cfg = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => "foobar#{version}",
+                                :data => data)
+        cfg.save
+        cfg.should be_valid
+
+        cfg = ServiceConfig.find_by_alias("foobar#{version}")
+        cfg.as_legacy[:version].should == version
+      end
     end
   end
 end
