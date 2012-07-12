@@ -46,6 +46,16 @@ class DefaultController < ApplicationController
         svc_desc = svc.as_legacy(user)
         svc_desc[:version] = version
         version_alias = svc.version_to_alias(version)
+
+        # Until we have a way to dis-ambiguate between client requests coming in from old clients vs. version aware client,
+        # send ONLY the current versions out.
+        skip_non_current_versions_for_old_clients = !(version_alias == "current" || version_alias.to_s.empty?)
+
+        # CloudController.logger.debug("Service: #{svc.name}, Version: #{version} (#{version_alias}), skip for old clients: #{skip_non_current_versions_for_old_clients}")
+
+        # COMMENT the line below for multi-version testing
+        next if skip_non_current_versions_for_old_clients
+
         svc_desc[:alias] = version_alias if version_alias
         ret[svc_type][svc.name][version] ||= {}
         ret[svc_type][svc.name][version] = svc_desc
