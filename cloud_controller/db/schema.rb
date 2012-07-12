@@ -131,6 +131,8 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.integer  "timeout"
     t.string   "cf_plan_id"
     t.string   "provider"
+    t.text     "supported_versions"
+    t.text     "version_aliases"
   end
 
   add_index "services", ["name", "version", "provider"], :name => "index_services_on_name_and_version_and_provider", :unique => true

@@ -36,14 +36,27 @@ class DefaultController < ApplicationController
     svcs.each do |svc|
       svc_count[svc.name] = svc_count[svc.name] + 1
     end
+
     svcs.each do |svc|
       # Just return core services or the service with only one provider
       if svc.provider.nil? || svc.provider == "core" || svc_count[svc.name] == 1
         svc_type = svc.synthesize_service_type
         ret[svc_type] ||= {}
         ret[svc_type][svc.name] ||= {}
-        ret[svc_type][svc.name][svc.version] ||= {}
-        ret[svc_type][svc.name][svc.version] = svc.as_legacy(user)
+
+        versions = svc.supported_versions
+        # backward compatible, svc.version will be removed.
+        versions = [ svc.version ] if versions.empty?
+
+        version_aliases = svc.version_aliases
+        versions.each do |version|
+          svc_desc = svc.as_legacy(user)
+          svc_desc[:version] = version
+          version_alias = svc.version_to_alias(version)
+          svc_desc[:alias] = version_alias if version_alias
+          ret[svc_type][svc.name][version] ||= {}
+          ret[svc_type][svc.name][version] = svc_desc
+        end
       end
     end
 
