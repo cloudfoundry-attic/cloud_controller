@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120619021951) do
+ActiveRecord::Schema.define(:version => 20120706172319) do
 
   create_table "app_collaborations", :force => true do |t|
     t.integer  "app_id"
@@ -42,6 +42,7 @@ ActiveRecord::Schema.define(:version => 20120619021951) do
     t.integer  "disk_quota",          :default => 2048
     t.integer  "lock_version",        :default => 0
     t.integer  "run_count",           :default => 0,         :null => false
+    t.boolean  "prod",                :default => false
   end
 
   add_index "apps", ["framework"], :name => "index_apps_on_framework"

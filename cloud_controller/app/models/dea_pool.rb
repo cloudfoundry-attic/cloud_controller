@@ -14,6 +14,7 @@ class DEAPool
      def find_dea(app)
        required_mem = app[:limits][:mem]
        required_runtime = app[:runtime]
+       prod = app[:prod]
        keys = dea_profiles.keys.shuffle
        keys.each do |key|
          entry = dea_profiles[key]
@@ -25,7 +26,11 @@ class DEAPool
            next
          end
 
-         if (dea[:available_memory] >= required_mem) && (dea[:runtimes].member? required_runtime)
+         if  (dea[:available_memory] >= required_mem) &&
+             (dea[:runtimes].member? required_runtime) &&
+             # non-prod DEAs can host either prod or non-prod apps
+             # prod DEAs can host prod apps
+             (!dea[:prod] || prod)
            CloudController.logger.debug("Found DEA #{dea[:id]}.")
            return dea[:id]
          end
