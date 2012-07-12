@@ -5,7 +5,6 @@ require 'thin'
 require 'uri'
 require 'json'
 
-
 describe DefaultController do
 
   describe "service apis" do
@@ -49,11 +48,13 @@ describe DefaultController do
         res['generic']['foo']['bar'].should_not be_nil
       end
 
-      it "should list multi versions service" do
+      it "should list current version only for service with multiple versions" do
         svc = Service.find_by_label('foo-bar')
         svc.should_not be_nil
 
         svc.supported_versions = ['bar', 'baz']
+        svc.version_aliases = {'current' => 'bar'}
+
         svc.save
         svc.should be_valid
 
@@ -65,17 +66,18 @@ describe DefaultController do
         foo_service = res['generic']['foo']
         foo_service.should_not be_nil
 
-        %w(bar baz).each do |v|
-          foo_service[v]['version'].should == v
-        end
+        foo_service['bar'].should_not be_nil
+        foo_service['bar']['version'].should == "bar"
+
+        foo_service['baz'].should be_nil
       end
 
       it "should list service alias" do
         svc = Service.find_by_label('foo-bar')
         svc.should_not be_nil
 
-        svc.supported_versions = ['bar', 'baz']
-        svc.version_aliases = {'current' => 'baz'}
+        svc.supported_versions = ['bar']
+        svc.version_aliases = {'current' => 'bar'}
         svc.save
         svc.should be_valid
 
@@ -87,8 +89,8 @@ describe DefaultController do
         foo_service = res['generic']['foo']
         foo_service.should_not be_nil
 
-        foo_service['bar'].has_key?('alias').should be_false
-        foo_service['baz']['alias'].should == 'current'
+        foo_service['bar'].has_key?('alias').should
+        foo_service['bar']['alias'].should == 'current'
       end
     end
   end
