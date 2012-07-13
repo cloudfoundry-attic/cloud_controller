@@ -26,12 +26,10 @@ require 'rack/fiber_pool'
 # parts of the Rails bootstrap process. This file is also loaded
 # by bin/cloudcontroller and by the HealthManager.
 module CloudController
-  # All fibers that are not associated with a Rack request MUST be spawned from
-  # this pool if they plan on hitting the DB. It is registered with the
-  # connection pool used with the em_mysql2 adapter and will ensure that
-  # connections used by fibers spawned from this pool will be correctly
-  # returned to the ActiveRecord connection pool.
-  UTILITY_FIBER_POOL = FiberPool.new(500)
+  # All fibers not associated with request MUST be spawned from this pool if
+  # they hit the DB. This keeps the maximum number of concurrent fibers in
+  # check, and makes sure the number of database connections doesn't blow up.
+  UTILITY_FIBER_POOL = FiberPool.new(32)
 
   class << self
     def environment

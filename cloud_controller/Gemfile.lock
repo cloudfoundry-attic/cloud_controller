@@ -130,7 +130,6 @@ GEM
       treetop (~> 1.4.8)
     mime-types (1.18)
     mocha (0.9.12)
-    mysql2 (0.2.7)
     nats (0.4.22)
       daemons (>= 1.1.4)
       eventmachine (>= 0.12.10)
@@ -211,7 +210,6 @@ DEPENDENCIES
   em-redis (~> 0.3.0)
   eventmachine!
   mocha
-  mysql2 (>= 0.2.6)
   nats
   nokogiri (~> 1.4.4)
   pg

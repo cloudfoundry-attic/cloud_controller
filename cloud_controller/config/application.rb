@@ -43,7 +43,7 @@ module CloudController
 
     unless Rails.env.test?
       # Install FiberPool early in the chain. `rake middleware` to see the order.
-      config.middleware.insert_before Rails::Rack::Logger, Rack::FiberPool, :size => 512
+      config.middleware.insert_before Rails::Rack::Logger, Rack::FiberPool, :size => 32
     end
   end
 end

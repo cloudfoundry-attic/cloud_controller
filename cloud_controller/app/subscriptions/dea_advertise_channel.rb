@@ -1,4 +1,3 @@
-
 EM.next_tick do
 
   NATS.subscribe('dea.advertise') do |msg|

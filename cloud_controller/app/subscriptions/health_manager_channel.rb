@@ -1,4 +1,3 @@
-
 EM.next_tick do
 
   # Create a command channel for the Health Manager to call us on
@@ -13,8 +12,6 @@ EM.next_tick do
   NATS.subscribe('cloudcontrollers.hm.requests', :queue => :cc) do |msg|
     begin
       payload = Yajl::Parser.parse(msg, :symbolize_keys => true)
-      # Notice the lack of a .resume call. The pool handles dispatching
-      # the supplied block for us.
       CloudController::UTILITY_FIBER_POOL.spawn do
         App.process_health_manager_message(payload)
       end
