@@ -50,15 +50,14 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-staging.git
-  revision: ef51c9c1c2cf35ac93e2d9ff1b9300c4dae3b5a3
-  ref: ef51c9c1
+  revision: 0b9a6c47b42783e10e071328a25150df6943a385
+  ref: 0b9a6c47
   specs:
-    vcap_staging (0.1.59)
+    vcap_staging (0.1.60)
       nokogiri (>= 1.4.4)
       rake
       rspec
       uuidtools (~> 2.1.2)
-      vcap_common (~> 1.0.8)
       yajl-ruby (>= 0.7.9)
 
 GEM
@@ -227,5 +226,5 @@ DEPENDENCIES
   uuidtools (~> 2.1.2)
   vcap_common!
   vcap_logging!
-  vcap_staging (~> 0.1.59)!
+  vcap_staging (~> 0.1.60)!
   yajl-ruby (~> 0.8.3)
