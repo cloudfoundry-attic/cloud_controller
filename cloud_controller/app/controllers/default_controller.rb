@@ -47,14 +47,13 @@ class DefaultController < ApplicationController
         versions = svc.supported_versions
         # backward compatible, svc.version will be removed.
         versions = [ svc.version ] if versions.empty?
-
-        version_aliases = svc.version_aliases
         versions.each do |version|
+          version_alias = svc.version_to_alias(version)
+          next if (versions.size > 1 && version_alias != "current")
+
           svc_desc = svc.as_legacy(user)
           svc_desc[:version] = version
-          version_alias = svc.version_to_alias(version)
           svc_desc[:alias] = version_alias if version_alias
-          ret[svc_type][svc.name][version] ||= {}
           ret[svc_type][svc.name][version] = svc_desc
         end
       end
