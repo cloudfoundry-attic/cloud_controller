@@ -11,11 +11,39 @@ class ServicesController < ApplicationController
 
   before_filter :validate_content_type, :except => [:import_from_data]
   before_filter :require_service_auth_token, :only => [:create, :get, :delete, :update_handle, :list_handles, :list_brokered_services]
-  before_filter :require_user, :only => [:provision, :bind, :bind_external, :unbind, :unprovision,
-                                         :create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
-                                         :serialized_url, :create_serialized_url, :import_from_url, :import_from_data, :job_info]
-  before_filter :require_lifecycle_extension, :only => [:create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
-                                         :serialized_url, :create_serialized_url, :import_from_url, :import_from_data, :job_info]
+  before_filter :require_user, :only =>
+  [
+    :provision,
+    :bind,
+    :bind_external,
+    :unbind,
+    :unprovision,
+    :create_snapshot,
+    :enum_snapshots,
+    :snapshot_details,
+    :update_snapshot_name,
+    :rollback_snapshot,
+    :delete_snapshot,
+    :serialized_url,
+    :create_serialized_url,
+    :import_from_url,
+    :import_from_data,
+    :job_info
+  ]
+  before_filter :require_lifecycle_extension, :only =>
+  [
+    :create_snapshot,
+    :enum_snapshots,
+    :snapshot_details,
+    :update_snapshot_name,
+    :rollback_snapshot,
+    :delete_snapshot,
+    :serialized_url,
+    :create_serialized_url,
+    :import_from_url,
+    :import_from_data,
+    :job_info
+  ]
   before_filter :unify_provider, :only => [:get, :delete, :update_handle, :list_handles]
 
   rescue_from(JsonMessage::Error) {|e| render :status => 400, :json =>  {:errors => e.to_s}}
@@ -225,7 +253,6 @@ class ServicesController < ApplicationController
   def unprovision
     cfg = ServiceConfig.find_by_user_id_and_alias(user.id, params[:id])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     cfg.unprovision
 
@@ -237,7 +264,6 @@ class ServicesController < ApplicationController
   def create_snapshot
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.create_snapshot
 
@@ -249,7 +275,6 @@ class ServicesController < ApplicationController
   def enum_snapshots
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.enum_snapshots
 
@@ -261,9 +286,21 @@ class ServicesController < ApplicationController
   def snapshot_details
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.snapshot_details params['sid']
+
+    render :json => result.extract
+  end
+
+  # Update name of a snapshot
+  #
+  def update_snapshot_name
+    req = VCAP::Services::Api::UpdateSnapshotNameRequest.decode(request_body)
+
+    cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
+    raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
+
+    result = cfg.update_snapshot_name params['sid'], req
 
     render :json => result.extract
   end
@@ -273,7 +310,6 @@ class ServicesController < ApplicationController
   def rollback_snapshot
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.rollback_snapshot params['sid']
 
@@ -285,7 +321,6 @@ class ServicesController < ApplicationController
   def delete_snapshot
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.delete_snapshot params['sid']
 
@@ -297,7 +332,6 @@ class ServicesController < ApplicationController
   def create_serialized_url
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.create_serialized_url params['sid']
 
@@ -308,7 +342,6 @@ class ServicesController < ApplicationController
   def serialized_url
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.serialized_url params['sid']
 
@@ -322,7 +355,6 @@ class ServicesController < ApplicationController
 
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.import_from_url req
 
@@ -342,7 +374,6 @@ class ServicesController < ApplicationController
       # Check the service and user's permission
       cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
       raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-      raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
       # Check whether has upload_token
       upload_token = AppConfig[:service_lifecycle][:upload_token]
@@ -388,7 +419,6 @@ class ServicesController < ApplicationController
   def job_info
     cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
-    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.job_info params['job_id']
 
