@@ -9,10 +9,13 @@ class ServicesController < ApplicationController
   before_filter :validate_content_type
   before_filter :require_service_auth_token, :only => [:create, :get, :delete, :update_handle, :list_handles, :list_brokered_services]
   before_filter :require_user, :only => [:provision, :bind, :bind_external, :unbind, :unprovision,
-                                         :create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
+                                         :create_snapshot, :enum_snapshots, :snapshot_details, :update_snapshot_name,
+                                         :rollback_snapshot, :delete_snapshot,
                                          :serialized_url, :create_serialized_url, :import_from_url, :import_from_data, :job_info]
-  before_filter :require_lifecycle_extension, :only => [:create_snapshot, :enum_snapshots, :snapshot_details,:rollback_snapshot, :delete_snapshot,
-                                         :serialized_url, :create_serialized_url, :import_from_url, :import_from_data, :job_info]
+  before_filter :require_lifecycle_extension, :only => [:create_snapshot, :enum_snapshots, :snapshot_details,
+                                                        :update_snapshot_name, :rollback_snapshot, :delete_snapshot,
+                                                        :serialized_url, :create_serialized_url, :import_from_url,
+                                                        :import_from_data, :job_info]
   before_filter :unify_provider, :only => [:get, :delete, :update_handle, :list_handles]
 
   rescue_from(JsonMessage::Error) {|e| render :status => 400, :json =>  {:errors => e.to_s}}
@@ -260,6 +263,20 @@ class ServicesController < ApplicationController
     raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
 
     result = cfg.snapshot_details params['sid']
+
+    render :json => result.extract
+  end
+
+  # Update name of a snapshot
+  #
+  def update_snapshot_name
+    req = VCAP::Services::Api::UpdateSnapshotNameRequest.decode(request_body)
+
+    cfg = ServiceConfig.find_by_user_id_and_name(user.id, params['id'])
+    raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless cfg
+    raise CloudError.new(CloudError::FORBIDDEN) unless cfg.provisioned_by?(user)
+
+    result = cfg.update_snapshot_name params['sid'], req
 
     render :json => result.extract
   end
