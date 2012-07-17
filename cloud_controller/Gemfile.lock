@@ -38,11 +38,12 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-common.git
-  revision: b7e3508eb96b86162ca385f1f46a13ecfcce359d
-  ref: b7e3508e
+  revision: 5334b662238f14ed2ddbb80f524dcf8cdd0eaadf
+  ref: 5334b662
   specs:
-    vcap_common (1.0.14)
+    vcap_common (2.0.0)
       eventmachine
+      membrane
       nats (~> 0.4.22.beta.8)
       posix-spawn (~> 0.3.6)
       thin (~> 1.3.1)
@@ -50,10 +51,10 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-staging.git
-  revision: 0b9a6c47b42783e10e071328a25150df6943a385
-  ref: 0b9a6c47
+  revision: 910bda9fa69504fbe2202edceb8d0b7d1d253fb7
+  ref: 910bda9f
   specs:
-    vcap_staging (0.1.60)
+    vcap_staging (0.1.61)
       nokogiri (>= 1.4.4)
       rake
       rspec
@@ -127,6 +128,7 @@ GEM
       i18n (>= 0.4.0)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
+    membrane (0.0.1)
     mime-types (1.18)
     mocha (0.9.12)
     nats (0.4.22)
@@ -226,5 +228,5 @@ DEPENDENCIES
   uuidtools (~> 2.1.2)
   vcap_common!
   vcap_logging!
-  vcap_staging (~> 0.1.60)!
+  vcap_staging (~> 0.1.61)!
   yajl-ruby (~> 0.8.3)
