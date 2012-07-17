@@ -144,6 +144,13 @@ class ServiceConfig < ActiveRecord::Base
     handle_lifecycle_error(e)
   end
 
+  def update_snapshot_name(sid, req)
+    client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
+    client.update_snapshot_name(:service_id => name, :snapshot_id => sid, :msg => req)
+  rescue => e
+    handle_lifecycle_error(e)
+  end
+
   def rollback_snapshot(sid)
     client = VCAP::Services::Api::ServiceGatewayClient.new(service.url, service.token, service.timeout)
     client.rollback_snapshot(:service_id => name, :snapshot_id => sid)

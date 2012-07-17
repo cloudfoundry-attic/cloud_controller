@@ -59,6 +59,7 @@ CloudController::Application.routes.draw do
   post   'services/v1/configurations/:id/snapshots'          => 'services#create_snapshot',      :as => :service_create_snapshot,       :id   => /[^\/]+/
   get    'services/v1/configurations/:id/snapshots'          => 'services#enum_snapshots',       :as => :service_enum_snapshots,        :id   => /[^\/]+/
   get    'services/v1/configurations/:id/snapshots/:sid'     => 'services#snapshot_details',     :as => :service_snapshot_details,      :id   => /[^\/]+/, :sid => /[^\/]+/
+  post   'services/v1/configurations/:id/snapshots/:sid/name'=> 'services#update_snapshot_name', :as => :service_update_snapshot_name,  :id   => /[^\/]+/, :sid => /[^\/]+/
   put    'services/v1/configurations/:id/snapshots/:sid'     => 'services#rollback_snapshot',    :as => :service_rollback_snapshot,     :id   => /[^\/]+/, :sid => /[^\/]+/
   delete 'services/v1/configurations/:id/snapshots/:sid'     => 'services#delete_snapshot',      :as => :service_delete_snapshot,     :id   => /[^\/]+/, :sid => /[^\/]+/
   post   'services/v1/configurations/:id/serialized/url/snapshots/:sid'     => 'services#create_serialized_url',       :as => :service_create_serialized_url,    :id   => /[^\/]+/, :sid => /[^\/]+/

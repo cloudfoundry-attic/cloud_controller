@@ -997,7 +997,7 @@ describe ServicesController do
             resp['description'].include?("not implemented").should == true
           end
 
-          %w(snapshot_details rollback_snapshot delete_snapshot serialized_url create_serialized_url ).each do |api|
+          %w(snapshot_details update_snapshot_name rollback_snapshot delete_snapshot serialized_url create_serialized_url ).each do |api|
             post api.to_sym, :id => 'xxx', :sid => '1'
             response.status.should == 501
             resp = Yajl::Parser.parse(response.body)
@@ -1008,6 +1008,7 @@ describe ServicesController do
           response.status.should == 501
           resp = Yajl::Parser.parse(response.body)
           resp['description'].include?("not implemented").should == true
+
         ensure
           AppConfig[:service_lifecycle] = origin
         end
@@ -1110,7 +1111,8 @@ describe ServicesController do
           {
             :snapshot_id => "abc",
             :date => "1",
-            :size => 123
+            :size => 123,
+            :name => "foo",
           }.to_json
         )
         VCAP::Services::Api::ServiceGatewayClient.any_instance.stubs(:snapshot_details).with(:service_id => @cfg.name, :snapshot_id => snapshot.snapshot_id).returns snapshot
@@ -1132,6 +1134,40 @@ describe ServicesController do
 
         get :snapshot_details, :id => @cfg.name, :sid => snapshot_id
         response.status.should == 404
+      end
+    end
+
+    describe "#update_snapshot_name" do
+      before :each do
+        cfg = ServiceConfig.new(:name => 'lifecycle', :alias => 'bar', :service => @svc, :user => @user)
+        cfg.save
+        cfg.should be_valid
+        @cfg = cfg
+      end
+
+      it 'should return not authorized for unknown users' do
+        request.env['HTTP_AUTHORIZATION'] = UserToken.create('bar@foo.com').encode
+        post :update_snapshot_name, :id => 'xxx' , :sid => 'yyy'
+        response.status.should == 403
+      end
+
+      it 'should return not found for unknown ids' do
+        post_msg :update_snapshot_name, :id => 'xxx', :sid => 'yyy' do
+          VCAP::Services::Api::UpdateSnapshotNameRequest.new(:name => "new name")
+        end
+        response.status.should == 404
+      end
+
+      it 'should update snapshot name' do
+        empty_response = VCAP::Services::Api::EMPTY_REQUEST
+        VCAP::Services::Api::ServiceGatewayClient.any_instance.expects(:update_snapshot_name).with(anything).returns empty_response
+
+        post_msg :update_snapshot_name, :id => @cfg.name, :sid => "1" do
+          VCAP::Services::Api::UpdateSnapshotNameRequest.new(:name => "new name")
+        end
+        response.status.should == 200
+        resp = Yajl::Parser.parse(response.body)
+        resp.should == {}
       end
     end
 
