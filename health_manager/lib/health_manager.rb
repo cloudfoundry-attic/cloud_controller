@@ -8,6 +8,7 @@ module CloudController
   require 'logger'
   require 'optparse'
   require 'set'
+  require 'zlib'
 
   def self.root
     @root ||= Pathname.new(File.expand_path('../../../cloud_controller', __FILE__))
@@ -60,6 +61,7 @@ class HealthManager
   attr_reader :database_scan, :droplet_lost, :droplets_analysis, :flapping_death, :flapping_timeout
   attr_reader :restart_timeout, :stable_state, :droplets
   attr_reader :request_queue
+  attr_reader :spindown_inactive_apps, :inactivity_period_for_spindown
 
   # TODO - Oh these need comments so badly..
   DOWN              = 'DOWN'
@@ -92,17 +94,18 @@ class HealthManager
     @droplets_analysis = config['intervals']['droplets_analysis'] || 10
     @flapping_death = config['intervals']['flapping_death'] || 1
     @flapping_timeout = config['intervals']['flapping_timeout'] || 500
-
     @min_restart_delay = config['intervals']['min_restart_delay'] || 60
     @max_restart_delay = config['intervals']['max_restart_delay'] || 480
-
     @giveup_crash_number = config['intervals']['giveup_crash_number'] || 4 # Use -1 to never give up!
-
     @restart_timeout = config['intervals']['restart_timeout']
     @stable_state = config['intervals']['stable_state']
     @max_db_reconnect_wait = config['intervals']['max_db_reconnect_wait'] || 300 #up to five minutes by default
+    @inactivity_period_for_spindown = config['intervals']['inactivity_period_for_spindown'] || -1
+
     @dequeueing_rate = config['dequeueing_rate'] || 50
     @database_environment = config['database_environment']
+
+    @spindown_inactive_apps = @inactivity_period_for_spindown > 0
 
     @droplets = {}
     @pending_restart = {}
@@ -238,9 +241,21 @@ class HealthManager
   end
 
   def analyze_app(app_id, droplet_entry, stats)
-
     update_timestamp = droplet_entry[:last_updated]
     quiescent = (now - update_timestamp) > @stable_state
+
+    if  @spindown_inactive_apps &&
+        !droplet_entry[:prod] &&
+        droplet_entry[:state] == STARTED &&
+        now - update_timestamp >= @inactivity_period_for_spindown
+
+      unless droplet_entry[:last_activity] &&
+          now - droplet_entry[:last_activity] < @inactivity_period_for_spindown
+        spindown(app_id)
+        return
+      end
+    end
+
     if APP_STABLE_STATES.include?(droplet_entry[:state]) && quiescent
       extra_instances = []
       missing_indices = []
@@ -615,6 +630,18 @@ class HealthManager
     result # return the droplets that we changed. This allows the spec tests to ensure the behaviour is correct.
   end
 
+  def process_active_apps_message(message)
+    app_list = parse_json(Zlib::Inflate.inflate(message))
+    app_list.each do |app_id|
+      droplet_entry = @droplets[app_id]
+      if droplet_entry
+        droplet_entry[:last_activity] = now
+      else
+        @logger.warn("Droplet went away but is still showing activity, app_id=#{app_id}")
+      end
+    end
+  end
+
   def process_health_message(message, reply)
     VCAP::Component.varz[:healthmanager_health_request_msgs_received] += 1
     message_json = parse_json(message)
@@ -826,6 +853,17 @@ class HealthManager
     @logger.info("Requesting the stop of extra instances: #{stop_message}")
   end
 
+  def spindown(droplet_id)
+    @logger.info("spinning down #{droplet_id} due to inactivity")
+
+    message = encode_json({
+                            :droplet => droplet_id,
+                            :op => :SPINDOWN
+                          })
+
+    NATS.publish('cloudcontrollers.hm.requests',message)
+  end
+
   def configure_timers
     EM.next_tick { update_from_db }
     EM.add_periodic_timer(@database_scan) { update_from_db }
@@ -902,28 +940,35 @@ class HealthManager
     trap('INT') { shutdown }
 
     NATS.subscribe('dea.heartbeat') do |message|
-      @logger.debug("heartbeat: #{message}")
+      @logger.debug { "heartbeat: #{message}" }
       process_heartbeat_message(message)
     end
 
     NATS.subscribe('droplet.exited') do |message|
-      @logger.debug("droplet.exited: #{message}")
+      @logger.debug { "droplet.exited: #{message}" }
       process_exited_message(message)
     end
 
     NATS.subscribe('droplet.updated') do |message|
-      @logger.debug("droplet.updated: #{message}")
+      @logger.debug { "droplet.updated: #{message}" }
       process_updated_message(message)
     end
 
     NATS.subscribe('healthmanager.status') do |message, reply|
-      @logger.debug("healthmanager.status: #{message}")
+      @logger.debug { "healthmanager.status: #{message}" }
       process_status_message(message, reply)
     end
 
     NATS.subscribe('healthmanager.health') do |message, reply|
-      @logger.debug("healthmanager.health: #{message}")
+      @logger.debug { "healthmanager.health: #{message}" }
       process_health_message(message, reply)
+    end
+
+    if @spindown_inactive_apps
+      NATS.subscribe('router.active_apps') do |message|
+        @logger.debug { "router.active_apps received, message size=#{message.size}" }
+        process_active_apps_message(message)
+      end
     end
 
     NATS.publish('healthmanager.start')
