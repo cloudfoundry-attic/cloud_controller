@@ -107,6 +107,8 @@ class HealthManager
 
     @spindown_inactive_apps = @inactivity_period_for_spindown > 0
 
+    @cc_partition = config['cc_partition'] || "default"
+
     @droplets = {}
     @pending_restart = {}
     @request_queue = VCAP::PrioritySet.new
@@ -480,15 +482,16 @@ class HealthManager
   end
 
   def process_updated_message(message)
+    message = parse_json(message)
+    return unless message['cc_partition'] == @cc_partition
     VCAP::Component.varz[:droplet_updated_msgs_received] += 1
-    droplet_id = parse_json(message)['droplet']
-    ensure_connected { update_droplet App.find_by_id(droplet_id) }
+    ensure_connected { update_droplet App.find_by_id(message['droplet']) }
   end
 
   def process_exited_message(message)
-    VCAP::Component.varz[:droplet_exited_msgs_received] += 1
-
     exit_message = parse_json(message)
+    return unless exit_message['cc_partition'] == @cc_partition
+    VCAP::Component.varz[:droplet_exited_msgs_received] += 1
     droplet_id = exit_message['droplet']
     version = exit_message['version']
     index = exit_message['index']
@@ -590,6 +593,7 @@ class HealthManager
     parsed_message = parse_json(message)
     dea_prod = parsed_message['prod']
     parsed_message['droplets'].each do |heartbeat|
+      next unless heartbeat['cc_partition'] == @cc_partition
       droplet_id = heartbeat['droplet']
       instance = heartbeat['instance']
       droplet_entry = @droplets[droplet_id]
@@ -636,8 +640,6 @@ class HealthManager
       droplet_entry = @droplets[app_id]
       if droplet_entry
         droplet_entry[:last_activity] = now
-      else
-        @logger.warn("Droplet went away but is still showing activity, app_id=#{app_id}")
       end
     end
   end
@@ -826,7 +828,7 @@ class HealthManager
     end
 
     @logger.info("Requesting the start of missing instances: #{start_message}")
-    NATS.publish('cloudcontrollers.hm.requests', encode_json(start_message))
+    NATS.publish("cloudcontrollers.hm.requests.#{@cc_partition}", encode_json(start_message))
   end
 
   def queue_request(message, high_priority)
@@ -849,7 +851,7 @@ class HealthManager
       :last_updated => last_updated,
       :instances => instances
     })
-    NATS.publish('cloudcontrollers.hm.requests', stop_message)
+    NATS.publish("cloudcontrollers.hm.requests.#{@cc_partition}", stop_message)
     @logger.info("Requesting the stop of extra instances: #{stop_message}")
   end
 
@@ -861,7 +863,7 @@ class HealthManager
                             :op => :SPINDOWN
                           })
 
-    NATS.publish('cloudcontrollers.hm.requests',message)
+    NATS.publish("cloudcontrollers.hm.requests.#{@cc_partition}",message)
   end
 
   def configure_timers

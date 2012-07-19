@@ -96,7 +96,7 @@ describe 'Health Manager' do
     #test start missing instances
     it 'should start missing instances' do
       app = nil
-      msg = receive_message 'cloudcontrollers.hm.requests' do
+      msg = receive_message 'cloudcontrollers.hm.requests.default' do
         #putting enough into Expected State to trigger an instance START request
         app = @helper.make_app_with_owner_and_instance(
                                                        make_app_def( 'to_be_started_app'),
@@ -111,7 +111,7 @@ describe 'Health Manager' do
 
     it 'should not start missing instances with empty staged_package_hash' do
       app = nil
-      msg = receive_message('cloudcontrollers.hm.requests', false) do
+      msg = receive_message('cloudcontrollers.hm.requests.default', false) do
 
         app_def = make_app_def('non_sane_app')
         app_def.delete(:staged_package_hash)
@@ -127,13 +127,14 @@ describe 'Health Manager' do
       app = @helper.make_app_with_owner_and_instance(make_app_def('crasher'), make_user_def)
       crash_msg = {
         'droplet' =>  app.id,
+        'cc_partition' => "default",
         'version' => 0,
         'instance' => 0,
         'index' => 0,
         'reason' => 'CRASHED',
         'crash_timestamp' => Time.now.to_i
       }
-      msg = receive_message 'cloudcontrollers.hm.requests' do
+      msg = receive_message 'cloudcontrollers.hm.requests.default' do
         NATS.publish('droplet.exited', crash_msg.to_json)
       end
       msg.should_not be_nil
