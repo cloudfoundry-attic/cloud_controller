@@ -99,6 +99,10 @@ unless AppConfig.key? :new_initial_placement
   AppConfig[:new_initial_placement] = false
 end
 
+unless AppConfig.key? :cc_partition
+  AppConfig[:cc_partition] = "default"
+end
+
 #generate bulk api credentials unless they've been explicitly specified (not that they should)
 unless AppConfig.key? :bulk_api
   AppConfig[:bulk_api] = { :auth =>

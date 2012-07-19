@@ -161,6 +161,10 @@ allow_debug: true
 # Enable new initial placement protocol.
 new_initial_placement: true
 
+# allows partitioning cc pool for the purpose of AB testing,
+# gradual migration, etc
+cc_partition: default
+
 # Supported runtime versions and debug modes.
 # Used for /info/runtimes endpoint (served unfiltered as JSON)
 runtimes:
