@@ -109,22 +109,6 @@ class App < ActiveRecord::Base
     }
   end
 
-  # Called by AppManager when staging this app.
-  def staging_environment
-    Yajl::Encoder.encode(staging_environment_data)
-  end
-
-  # The data that is passed to the staging plugin for this app.
-  def staging_environment_data
-    # each ServiceBinding returns a denormalized configuration.
-    services = service_bindings(true).map {|sb| sb.for_staging}
-    { :services => services,
-      :framework => framework,
-      :runtime     => runtime,
-      :resources => resource_requirements,
-      :meta => metadata }
-  end
-
   def staging_task_properties
     services = service_bindings(true).map {|sb| sb.for_staging}
     { :services    => services,
