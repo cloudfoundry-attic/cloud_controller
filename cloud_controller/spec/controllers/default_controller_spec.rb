@@ -7,9 +7,7 @@ require 'json'
 
 describe DefaultController do
 
-  describe "service apis" do
-
-    before :each do
+  before :each do
       u = User.new(:email => 'foo@bar.com')
       u.set_and_encrypt_password('foobar')
       u.save
@@ -38,6 +36,8 @@ describe DefaultController do
       request.env['CONTENT_TYPE'] = Mime::JSON
       request.env['HTTP_AUTHORIZATION'] = UserToken.create('foo@bar.com').encode
     end
+
+    describe "service apis" do
 
     describe '#service_info' do
       it "should list service" do
@@ -93,6 +93,33 @@ describe DefaultController do
 
         foo_service['bar'].has_key?('alias').should be_true
         foo_service['bar']['alias'].should == 'current'
+      end
+    end
+  end
+
+  describe "info apis" do
+    describe '#info' do
+      it "should include framework info" do
+        get :info
+        response.status.should == 200
+        res = Yajl::Parser.parse(response.body)
+        res["frameworks"]["spring"].should ==  {"name"=>"spring", "runtimes"=>[{"name"=>"java", "version"=>"1.6", "description"=>"Java 6"}],
+          "detection"=>[{"*.war"=>true}]}
+      end
+
+      it "should skip invalid runtime info" do
+        get :info
+        response.status.should == 200
+        res = Yajl::Parser.parse(response.body)
+        res["frameworks"]["invalidruntime"]["runtimes"].should == []
+      end
+    end
+    describe '#runtime_info' do
+      it "returns correct runtimes info" do
+        get :runtime_info
+        response.status.should == 200
+        res = Yajl::Parser.parse(response.body)
+        res["java"].should == {"description"=>"Java 6","version"=>"1.6","debug_modes"=>nil}
       end
     end
   end
