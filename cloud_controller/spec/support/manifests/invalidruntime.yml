@@ -1,0 +1,7 @@
+---
+name: "invalidruntime"
+runtimes:
+  - invalid:
+      default: true
+detection:
+  - "*.js": '.'
