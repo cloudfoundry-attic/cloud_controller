@@ -13,7 +13,7 @@ class DEAPool
 
      def find_dea(app)
        required_mem = app[:limits][:mem]
-       required_runtime = app[:runtime]
+       required_runtime = app[:runtime_info]
        prod = app[:prod]
        keys = dea_profiles.keys.shuffle
        keys.each do |key|
@@ -27,7 +27,7 @@ class DEAPool
          end
 
          if  (dea[:available_memory] >= required_mem) &&
-             (dea[:runtimes].member? required_runtime) &&
+             (dea[:runtimes].member? required_runtime['name']) &&
              # non-prod DEAs can host either prod or non-prod apps
              # prod DEAs can host prod apps
              (!dea[:prod] || prod)
