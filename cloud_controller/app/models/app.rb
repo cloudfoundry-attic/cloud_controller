@@ -2,7 +2,25 @@ require 'set'
 require 'services/api'
 require 'openssl'
 
+class FrameworkValidator < ActiveModel::Validator
+  def validate(record)
+    framework = Framework.find(record.framework)
+    unless framework
+      record.errors[:framework] << "The framework is not valid"
+      return
+    end
+    unless Runtime.all_ids.include? record.runtime
+      record.errors[:runtime] << "The runtime is not valid"
+      return
+    end
+    unless framework.supports_runtime? record.runtime
+      record.errors[:runtime] << "The runtime is not defined for the given framework"
+    end
+  end
+end
+
 class App < ActiveRecord::Base
+
   belongs_to :owner, :class_name => 'User' # By default, whomever created the app
   has_many :app_collaborations, :dependent => :destroy
   has_many :collaborators, :through => :app_collaborations, :source => :user
@@ -24,16 +42,12 @@ class App < ActiveRecord::Base
   AppStates = %w[STOPPED STARTED]
   PackageStates = %w[PENDING STAGED FAILED]
 
-  Runtimes = %w[ruby18 ruby19 java java7 node node06 node08 php erlangR14B02 python2]
-  Frameworks = %w[sinatra rack rails3 java_web spring grails node php otp_rebar lift wsgi django standalone play unknown]
-
-  validates_presence_of :name, :framework, :runtime
+  validates_presence_of :name
 
   validates_format_of :name, :with => /^[\w-]+$/ # Don't allow periods, !, etc
 
   # TODO - Update vmc client to use reasonable strings for these.
-  validates_inclusion_of :framework, :in => Frameworks
-  validates_inclusion_of :runtime, :in => Runtimes & AppConfig[:runtimes].keys.map(&:to_s)
+  validates_with FrameworkValidator
   validates_inclusion_of :state, :in => AppStates
   validates_inclusion_of :package_state, :in => PackageStates
 
@@ -109,30 +123,14 @@ class App < ActiveRecord::Base
     }
   end
 
-  # Called by AppManager when staging this app.
-  def staging_environment
-    Yajl::Encoder.encode(staging_environment_data)
-  end
-
-  # The data that is passed to the staging plugin for this app.
-  def staging_environment_data
-    # each ServiceBinding returns a denormalized configuration.
-    services = service_bindings(true).map {|sb| sb.for_staging}
-    { :services => services,
-      :framework => framework,
-      :runtime     => runtime,
-      :resources => resource_requirements,
-      :meta => metadata }
-  end
-
   def staging_task_properties
     services = service_bindings(true).map {|sb| sb.for_staging}
-    { :services    => services,
-      :framework   => framework,
-      :runtime     => runtime,
-      :resources   => resource_requirements,
-      :environment => environment,
-      :meta => metadata }
+    { "services"    => services,
+      "framework"   => Framework.find(framework).options,
+      "runtime"     => Runtime.find(runtime).options,
+      "resources"   => resource_requirements,
+      "environment" => environment,
+      "meta" => metadata }
   end
 
   # Returns an array of the URLs that point to this application
@@ -148,7 +146,7 @@ class App < ActiveRecord::Base
   end
 
   def resource_requirements
-    {:memory => memory, :disk => disk_quota, :fds => file_descriptors}
+    {"memory" => memory, "disk" => disk_quota, "fds" => file_descriptors}
   end
 
   def limits
@@ -583,7 +581,10 @@ class App < ActiveRecord::Base
       self.framework = 'lift'
       self.runtime   = 'java'
     end
-    self.runtime = StagingPlugin.default_runtime_for(framework) if self.runtime.nil?
+    if self.runtime.nil?
+      framework_info = Framework.find(framework)
+      self.runtime = framework_info.default_runtime if !framework_info.nil?
+    end
     true
   end
 

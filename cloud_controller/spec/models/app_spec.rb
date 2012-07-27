@@ -3,9 +3,38 @@ require 'spec_helper'
 describe App do
   it "must have an owner"
   it "requires a unique name/owner combination"
-  it "specifies a runtime and framework"
   it "defaults to 0 instances when initialized" do
     App.new.instances.should be_zero
+  end
+
+  it "requires a valid framework" do
+    @user_a = create_user('a@foo.com', 'a')
+    @app = App.create(
+        :name      => 'foobar',
+        :owner     => @user_a,
+        :runtime   => 'ruby18',
+        :framework => 'foo')
+    @app.should_not be_valid
+  end
+
+  it "requires a valid runtime" do
+    @user_a = create_user('a@foo.com', 'a')
+    @app = App.create(
+        :name      => 'foobar',
+        :owner     => @user_a,
+        :runtime   => 'foo',
+        :framework => 'sinatra')
+    @app.should_not be_valid
+  end
+
+  it "requires a valid framework/runtime combo" do
+    @user_a = create_user('a@foo.com', 'a')
+    @app = App.create(
+        :name      => 'foobar',
+        :owner     => @user_a,
+        :runtime   => 'java',
+        :framework => 'sinatra')
+    @app.should_not be_valid
   end
 
   describe "#collaborators" do

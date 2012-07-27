@@ -6,19 +6,44 @@ require 'vcap/common'
 require 'vcap/staging/plugin/common'
 require 'openssl'
 
-config_file = ENV['CLOUD_CONTROLLER_CONFIG'] || File.expand_path('../cloud_controller.yml', __FILE__)
-begin
-  if File.exists?(config_file)
-    config = YAML.load_file(config_file)
-    if Hash === config
-      AppConfig = VCAP.symbolize_keys(config)
-    else
-      AppConfig = nil
+config_file = ENV['CLOUD_CONTROLLER_CONFIG']
+if config_file
+  begin
+    if File.exists?(config_file)
+      config = YAML.load_file(config_file)
+      if Hash === config
+        AppConfig = VCAP.symbolize_keys(config)
+      else
+        AppConfig = nil
+      end
     end
+  rescue => ex
+    $stderr.puts %[FATAL: Exception encountered while loading config file: #{ex}\n#{ex.backtrace.join("\n")}]
+    exit 1
   end
-rescue => ex
-  $stderr.puts %[FATAL: Exception encountered while loading config file: #{ex}\n#{ex.backtrace.join("\n")}]
-  exit 1
+else
+  # If no config file specified by CLOUD_CONTROLLER_CONFIG, add defaults for testing
+  $stderr.puts "No path to CLOUD_CONTROLLER_CONFIG supplied.  Using default properties."
+  AppConfig = {:database_environment => {:test => {:adapter =>"sqlite3",
+                                                  :database =>"db/test.sqlite3",
+                                                  :encoding =>"utf8"},
+                                         :development => {:adapter =>"sqlite3",
+                                                         :database => "db/cloudcontroller.sqlite3",
+                                                         :encoding => "utf8"}
+                                        },
+               :allow_registration => true,
+               :builtin_services => {:mysql => {:token => "0xdeadbeef"},
+                                     :postgresql => {:token => "0xdeadbeef"},
+                                     :redis => {:token => "0xdeadbeef"},
+                                     :mongodb => {:token => "0xdeadbeef"},
+                                     :rabbitmq => {:token => "0xdeadbeef"},
+                                     :neo4j => {:token => "0xdeadbeef"},
+                                     :atmos => {:token => "0xdeadbeef"},
+                                     :filesystem => {:token => "0xdeadbeef"},
+                                     :vblob => {:token => "0xdeadbeef"}},
+               :service_lifecycle => {:max_upload_size => 1},
+               :directories => {:staging_manifests => File.expand_path('../../spec/support/manifests', __FILE__)},
+               :runtimes_file => File.expand_path('../../spec/support/runtimes.yml', __FILE__)}
 end
 
 unless AppConfig
@@ -41,7 +66,6 @@ required = { :external_uri => 'api.vcap.me',
              :external_port => 9022,
              :directories => { :droplets          => '/var/vcap/shared/droplets',
                                :resources         => '/var/vcap/shared/resources',
-                               :staging_manifests => StagingPlugin::DEFAULT_MANIFEST_ROOT,
                                :staging_cache     => '/var/vcap.local/staging',
                                :tmpdir            => '/var/vcap/data/cloud_controller/tmp'},
              :mbus => 'nats://localhost:4222/',
@@ -205,6 +229,16 @@ if (AppConfig[:staging][:new_stager_percent] || AppConfig[:staging][:new_stager_
 end
 
 AppConfig[:staging][:queue] ||= "staging"
+
+unless AppConfig[:directories][:staging_manifests]
+  $stderr.puts "AppConfig[:directories][:staging_manifests] must be set to a non-empty value"
+  exit 1
+end
+
+unless AppConfig[:runtimes_file]
+  $stderr.puts "AppConfig[:runtimes_file] must be set to a non-empty value"
+  exit 1
+end
 
 if AppConfig[:bootstrap_users]
   unless AppConfig[:bootstrap_users].kind_of?(Array)

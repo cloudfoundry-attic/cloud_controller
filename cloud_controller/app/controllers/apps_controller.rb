@@ -316,8 +316,8 @@ class AppsController < ApplicationController
     # invalid happens all the way down at the DB layer.
     begin
       app.save!
-    rescue
-      CloudController.logger.error "app: #{app.id} Failed to save new app errors: #{app.errors}"
+    rescue Exception => e
+      CloudController.logger.error "app: #{app.id} Failed to save new app errors: #{app.errors}.  Exception: #{e}"
       raise CloudError.new(CloudError::APP_INVALID)
     end
 

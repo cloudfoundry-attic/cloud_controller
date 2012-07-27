@@ -1,0 +1,30 @@
+---
+name: "sinatra"
+runtimes:
+  - ruby18:
+      default: true
+      environment:
+       bundle_gemfile:
+  - ruby19:
+      environment:
+       bundle_gemfile:
+  - myruntime:
+       default: false
+app_servers:
+  - "thin":
+      description: "Thin"
+      executable: false # determined during staging
+      default: true
+detection:
+  - "*.rb": "require\\s+'sinatra'|require\\s+\"sinatra\"" # .rb files in the root dir containing a require?
+  - "config.ru": false # use rack if it detects a config.ru
+  - "config/environment.rb": false # and config/environment.rb must not exist
+staged_services:
+  - "name": "mysql"
+    "version": "*"
+  - "name": "postgresql"
+    "version": "*"
+  - "name": "redis"
+    "version": "2"
+
+# vim: filetype=yaml
