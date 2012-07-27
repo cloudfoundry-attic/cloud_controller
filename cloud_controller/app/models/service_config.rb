@@ -68,7 +68,7 @@ class ServiceConfig < ActiveRecord::Base
         raise CloudError.new(CloudError::SERVICE_GATEWAY_ERROR)
       end
       svc_config.attributes = {
-        :data           => config.data,
+        :data           => config.configuration,
         :credentials    => config.credentials,
         :name           => config.service_id
       }
