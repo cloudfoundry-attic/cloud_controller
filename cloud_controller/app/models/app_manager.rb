@@ -14,10 +14,6 @@ class AppManager
       AppConfig[:staging][:max_staging_runtime] || DEFAULT_MAX_STAGING_RUNTIME
     end
 
-    def staging_manifest_directory
-      AppConfig[:directories][:staging_manifests]
-    end
-
     def pending
       @pending ||= []
     end
@@ -76,19 +72,26 @@ class AppManager
       job = pending.shift
       VCAP::Component.varz[:pending_stage_cmds] = pending.length
 
-      CloudController.logger.debug("Starting staging command: #{job[:cmd]}", :tags => [:staging])
+      CloudController.logger.debug("Starting staging command: #{job[:cmd]} #{job[:config]}", :tags => [:staging])
 
       if AppConfig[:staging][:secure]
         job[:user] = user = SecureUserManager.instance.grab_secure_user
         CloudController.logger.debug("Checked out user #{user.inspect}", :tags => [:staging, :secure])
 
-        job[:cmd] = "#{job[:cmd]} #{user[:uid]} #{user[:gid]}"
-        CloudController.logger.debug("Command changed to '#{job[:cmd]}'", :tags => [:staging, :secure])
+        job[:config]["secure_user"] = {
+          "uid" => Integer(user[:uid]),
+          "gid" => Integer(user[:gid]),
+        }
+        CloudController.logger.debug("Command config changed to '#{job[:config]}'", :tags => [:staging, :secure])
 
         AppManager.secure_staging_dir(job[:user], job[:staging_dir])
         AppManager.secure_staging_dir(job[:user], job[:exploded_dir])
         AppManager.secure_staging_dir(job[:user], job[:work_dir])
       end
+
+      plugin_config_file = File.join(job[:work_dir],"plugin_config")
+      StagingPlugin::Config.to_file(job[:config], plugin_config_file)
+      job[:cmd] = "#{job[:cmd]} #{plugin_config_file}"
 
       Bundler.with_clean_env do
 
@@ -137,17 +140,22 @@ class AppManager
 
   def run_staging_command(script, exploded_dir, staging_dir, env_json)
     work_dir = Dir.mktmpdir
-    plugin_env_path = File.join(work_dir, 'plugin_env.json')
-    File.open(plugin_env_path, 'w') {|f| f.write(env_json) }
+    plugin_config = {
+      "source_dir"   => exploded_dir,
+      "dest_dir"     => staging_dir,
+      "environment"  => env_json
+    }
+
     job = {
       :app => @app,
-      :cmd => "#{script} #{exploded_dir} #{staging_dir} #{plugin_env_path} #{AppManager.staging_manifest_directory}",
+      :cmd => "#{script}",
+      :config => plugin_config,
       :staging_dir => staging_dir,
       :exploded_dir => exploded_dir,
       :work_dir => work_dir
     }
 
-    CloudController.logger.debug("Queueing staging command #{job[:cmd]}", :tags => [:staging])
+    CloudController.logger.debug("Queueing staging command #{job[:cmd]} #{job[:config]}", :tags => [:staging])
 
     AppManager.queue_staging_job(job)
   end
@@ -282,36 +290,10 @@ class AppManager
     end
   end
 
-  def manifest_for_framework(framework)
-    manifest_path = File.join(AppManager.staging_manifest_directory, "#{framework}.yml")
-    if File.exists?(manifest_path)
-      return StagingPlugin.load_manifest(manifest_path)
-    else
-      nil
-    end
-  end
-
   def stage
     return if app.package_hash.blank? || app.staged?
 
     CloudController.logger.debug "app: #{app.id} Staging starting"
-
-    manifest = manifest_for_framework(app.framework)
-
-    unless manifest && manifest['runtimes']
-      raise CloudError.new(CloudError::APP_INVALID_FRAMEWORK, app.framework)
-    end
-
-    runtime = nil
-
-    manifest['runtimes'].each do |hash|
-      runtime ||= hash[app.runtime]
-    end
-    unless runtime
-      raise CloudError.new(CloudError::APP_INVALID_RUNTIME, app.runtime, app.framework)
-    end
-
-    env_json = Yajl::Encoder.encode(app.staging_task_properties)
 
     app_source_dir = Dir.mktmpdir
     app.explode_into(app_source_dir)
@@ -320,7 +302,8 @@ class AppManager
     run_plugin_path = Rails.root.join('script', 'run_plugin.rb')
     staging_script  = "#{CloudController.current_ruby} #{run_plugin_path} #{app.framework}"
     # Perform staging command
-    run_staging_command(staging_script, app_source_dir, output_dir, env_json)
+    run_staging_command(staging_script, app_source_dir, output_dir,
+      app.staging_task_properties)
 
     once_app_is_staged do
       CloudController.logger.debug "app: #{app.id} Staging complete"
@@ -549,7 +532,7 @@ class AppManager
 
   def new_message
     data = {:droplet => app.id, :name => app.name, :uris => app.mapped_urls}
-    data[:runtime] = app.runtime
+    data[:runtime] = Runtime.find(app.runtime).options
     data[:framework] = app.framework
     data[:prod] = app.prod
     data[:sha1] = app.staged_package_hash
