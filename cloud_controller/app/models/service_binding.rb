@@ -17,13 +17,42 @@ class ServiceBinding < ActiveRecord::Base
   # :label, :name, :credentials, :options
   def for_staging
     data = {}
-    data[:label] = service_config.service.label # what we call the offering
-    data[:tags] = service_config.service.tags
-    data[:name] = service_config.alias # what the user chose to name it
+    cfg = service_config
+    svc = cfg.service
+    data[:label] = get_label
+    data[:tags] = svc.tags
+    data[:name] = cfg.alias # what the user chose to name it
     data[:credentials] = credentials
     data[:options] = binding_options # options specified at bind-time
-    data[:plan] = service_config.plan
-    data[:plan_option] = service_config.plan_option
+    data[:plan] = cfg.plan
+    data[:plan_option] = cfg.plan_option
     data
+  end
+
+  # return the message that used by dea to forge the
+  # service related environment variables
+  def for_dea_message
+    cfg = service_config
+    svc = cfg.service
+    { :name    => cfg.alias,
+      :type    => svc.synthesize_service_type,
+      :label   => sb.get_label,
+      :vendor  => svc.name,
+      :version => svc.version,
+      :tags    => svc.tags,
+      :plan    => cfg.plan,
+      :plan_option => cfg.plan_option,
+      :credentials => sb.credentials,
+    }
+  end
+
+  def get_label
+    version = service_config.data["version"]
+    if version
+      "#{service_config.service.name}-#{version}"
+    else
+      # old instance
+      service_config.service.label
+    end
   end
 end

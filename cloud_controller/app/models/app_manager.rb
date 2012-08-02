@@ -557,18 +557,7 @@ class AppManager
     data[:executableUri] = "/staged_droplets/#{app.id}/#{app.staged_package_hash}"
     data[:version] = app.generate_version
     data[:services] = app.service_bindings.map do |sb|
-      cfg = sb.service_config
-      svc = cfg.service
-      { :name    => cfg.alias,
-        :type    => svc.synthesize_service_type,
-        :label   => svc.label,
-        :vendor  => svc.name,
-        :version => svc.version,
-        :tags    => svc.tags,
-        :plan    => cfg.plan,
-        :plan_option => cfg.plan_option,
-        :credentials => sb.credentials,
-      }
+      sb.for_dea_message
     end
     data[:limits] = app.limits
     data[:env] = app.environment_variables
