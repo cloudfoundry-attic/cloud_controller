@@ -561,7 +561,7 @@ class AppManager
       svc = cfg.service
       { :name    => cfg.alias,
         :type    => svc.synthesize_service_type,
-        :label   => svc.label,
+        :label   => sb.get_label,
         :vendor  => svc.name,
         :version => svc.version,
         :tags    => svc.tags,
