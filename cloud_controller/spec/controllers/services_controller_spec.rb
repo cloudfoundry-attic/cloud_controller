@@ -657,7 +657,7 @@ describe ServicesController do
 
       it 'should provision services' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
@@ -671,7 +671,7 @@ describe ServicesController do
 
       it 'should provision services with specific provider' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
@@ -686,7 +686,7 @@ describe ServicesController do
 
       it 'should fail to provision a config with the same name as an existing config' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -710,7 +710,7 @@ describe ServicesController do
 
       it "should support default service version" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).with('bar', 'free').returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).with('bar', 'free').returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -727,7 +727,7 @@ describe ServicesController do
 
       it "should support version in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         %w(bar baz).each do |version|
@@ -758,7 +758,7 @@ describe ServicesController do
 
       it "should support version alias in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
