@@ -125,7 +125,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.text     "plan_options"
     t.text     "binding_options"
     t.text     "acls"
-    t.boolean  "active",          :default => true
+    t.boolean  "active",             :default => true
     t.datetime "created_at"
     t.datetime "updated_at"
     t.integer  "timeout"

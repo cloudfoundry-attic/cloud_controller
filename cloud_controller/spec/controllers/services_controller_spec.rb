@@ -51,9 +51,9 @@ describe ServicesController do
         response.status.should == 200
       end
 
-      it 'should create service offerings for single brokered service' do
+      it 'should create service offerings for single proxied service' do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'broker'
-        AppConfig[:service_broker] = {:token => ['broker']}
+        AppConfig[:service_proxy] = {:token => ['broker']}
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
@@ -62,9 +62,9 @@ describe ServicesController do
         response.status.should == 200
       end
 
-      it 'should create service offerings for multiple brokered service' do
+      it 'should create service offerings for multiple proxied service' do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'broker'
-        AppConfig[:service_broker] = {:token => ['broker', 'foobar']}
+        AppConfig[:service_proxy] = {:token => ['broker', 'foobar']}
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
@@ -75,7 +75,7 @@ describe ServicesController do
 
       it 'should not create brokered service offerings if token mismatch' do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'foobar'
-        AppConfig[:service_broker] = {:token => ['broker']}
+        AppConfig[:service_proxy] = {:token => ['broker']}
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
@@ -355,15 +355,15 @@ describe ServicesController do
       end
     end
 
-    describe '#list_brokered_services' do
+    describe '#list_proxied_services' do
       before :each do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'broker'
-        AppConfig[:service_broker] = {:token => ['broker']}
+        AppConfig[:service_proxy] = {:token => ['broker']}
       end
 
       it "should return not authorized on token mismatch" do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'foobar'
-        get :list_brokered_services
+        get :list_proxied_services
         response.status.should == 403
       end
 
@@ -378,9 +378,9 @@ describe ServicesController do
         svc.save
         svc.should be_valid
 
-        get :list_brokered_services
+        get :list_proxied_services
         response.status.should == 200
-        Yajl::Parser.parse(response.body)['brokered_services'].should be_empty
+        Yajl::Parser.parse(response.body)['proxied_services'].should be_empty
       end
 
       it "should list single brokered services" do
@@ -395,9 +395,9 @@ describe ServicesController do
         svc.save
         svc.should be_valid
 
-        get :list_brokered_services
+        get :list_proxied_services
         response.status.should == 200
-        Yajl::Parser.parse(response.body)['brokered_services'].size.should == 1
+        Yajl::Parser.parse(response.body)['proxied_services'].size.should == 1
       end
 
       it "should list multiple brokered services" do
@@ -419,13 +419,13 @@ describe ServicesController do
         svc.save
         svc.should be_valid
 
-        get :list_brokered_services
+        get :list_proxied_services
         response.status.should == 200
-        Yajl::Parser.parse(response.body)['brokered_services'].size.should == 2
+        Yajl::Parser.parse(response.body)['proxied_services'].size.should == 2
       end
 
       it "should list multiple brokered services with different keys" do
-        AppConfig[:service_broker] = {
+        AppConfig[:service_proxy] = {
           :token => ['broker', 'foobar']
         }
 
@@ -451,14 +451,14 @@ describe ServicesController do
         svc.should be_valid
 
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'broker'
-        get :list_brokered_services
+        get :list_proxied_services
         response.status.should == 200
-        Yajl::Parser.parse(response.body)['brokered_services'].size.should == 2
+        Yajl::Parser.parse(response.body)['proxied_services'].size.should == 2
 
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'foobar'
-        get :list_brokered_services
+        get :list_proxied_services
         response.status.should == 200
-        Yajl::Parser.parse(response.body)['brokered_services'].size.should == 1
+        Yajl::Parser.parse(response.body)['proxied_services'].size.should == 1
       end
     end
 
