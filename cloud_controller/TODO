@@ -1,6 +1,6 @@
 #MUST DO.
 
--support for fd,memory,disk,io quota's.
+-support for fd, memory, disk, io quota's.
 -make sure Resque gets setup todo authentication!!!
 
 
