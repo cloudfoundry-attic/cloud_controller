@@ -657,7 +657,7 @@ describe ServicesController do
 
       it 'should provision services' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
@@ -671,7 +671,7 @@ describe ServicesController do
 
       it 'should provision services with specific provider' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
         post_msg :provision do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
@@ -686,7 +686,7 @@ describe ServicesController do
 
       it 'should fail to provision a config with the same name as an existing config' do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -710,7 +710,7 @@ describe ServicesController do
 
       it "should support default service version" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).with('bar', 'free').returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).with('bar', 'free').returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -727,7 +727,7 @@ describe ServicesController do
 
       it "should support version in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         %w(bar baz).each do |version|
@@ -758,7 +758,7 @@ describe ServicesController do
 
       it "should support version alias in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -1371,10 +1371,13 @@ describe ServicesController do
       end
 
       it 'should return not found for unknown ids' do
-        put_msg :import_from_data, :id => 'xxx' do
-          VCAP::Services::Api::SerializedData.new(:data  => 'raw_data')
+        begin
+          tmp_file = Tempfile.new('foo_import_from_data')
+          put :import_from_data, :id => 'xxx', :data_file => tmp_file
+          response.status.should == 404
+        ensure
+          FileUtils.rm_rf(tmp_file.path) if tmp_file
         end
-        response.status.should == 404
       end
 
       it 'should create import from data job' do
@@ -1385,15 +1388,20 @@ describe ServicesController do
           :start_time => "1"
           }.to_json
         )
-        req = VCAP::Services::Api::SerializedData.new(:data => 'raw_data' )
-        VCAP::Services::Api::ServiceGatewayClient.any_instance.stubs(:import_from_data).with(anything).returns job
 
-        put_msg :import_from_data, :id => @cfg.name do
-          req
+        url = "http://api.cloudfoundry"
+        VCAP::Services::Api::ServiceGatewayClient.any_instance.stubs(:import_from_url).with(anything).returns job
+        VCAP::Services::Api::SDSClient.any_instance.stubs(:import_from_data).with(anything).returns VCAP::Services::Api::SerializedURL.new(:url => url)
+        begin
+          tmp_file = Tempfile.new('foo_import_from_data')
+          put :import_from_data, :id => @cfg.name, :data_file => tmp_file
+          puts response.body
+          response.status.should == 200
+          resp = Yajl::Parser.parse(response.body)
+          resp["job_id"].should == "abc"
+        ensure
+          FileUtils.rm_rf(tmp_file.path) if tmp_file
         end
-        response.status.should == 200
-        resp = Yajl::Parser.parse(response.body)
-        resp["job_id"].should == "abc"
       end
     end
 
