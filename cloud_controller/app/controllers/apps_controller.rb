@@ -372,6 +372,14 @@ class AppsController < ApplicationController
     env = body_params[:env].uniq
     env_new = env.delete_if {|e| e =~ /^(vcap|vmc)_/i }
     raise CloudError.new(CloudError::FORBIDDEN) if env != env_new
+    # TODO this is a suggested workaround until we have a consistent mechanism
+    # for users to pass in configuration that controls staging behavior
+    if app.environment != env
+      old_bundle_without = app.environment.find {|env| env =~ /\ABUNDLE_WITHOUT=/}
+      new_bundle_without = env.find {|env| env =~ /\ABUNDLE_WITHOUT=/}
+      # Restage the app if user has changed BUNDLE_WITHOUT
+      app.package_state = 'PENDING' if old_bundle_without != new_bundle_without
+    end
     app.environment = env
   end
 

@@ -8,13 +8,11 @@ class UaaToken
 
   @token_issuer ||= CF::UAA::TokenIssuer.new(AppConfig[:uaa][:url],
                                              AppConfig[:uaa][:resource_id],
-                                             AppConfig[:uaa][:client_secret],
-                                             "read write password")
+                                             AppConfig[:uaa][:client_secret])
 
   @id_token_issuer ||= CF::UAA::TokenIssuer.new(AppConfig[:uaa][:url],
                                                "vmc",
-                                               nil,
-                                               "read")
+                                               nil)
 
   class << self
 
