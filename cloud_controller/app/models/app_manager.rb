@@ -315,7 +315,7 @@ class AppManager
       raise CloudError.new(CloudError::APP_INVALID_RUNTIME, app.runtime, app.framework)
     end
 
-    env_json = app.staging_environment
+    env_json = Yajl::Encoder.encode(app.staging_task_properties)
 
     app_source_dir = Dir.mktmpdir
     app.explode_into(app_source_dir)
@@ -565,7 +565,7 @@ class AppManager
       svc = cfg.service
       { :name    => cfg.alias,
         :type    => svc.synthesize_service_type,
-        :label   => svc.label,
+        :label   => sb.get_label,
         :vendor  => svc.name,
         :version => svc.version,
         :tags    => svc.tags,

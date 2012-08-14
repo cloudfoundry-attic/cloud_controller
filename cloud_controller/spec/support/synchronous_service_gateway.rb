@@ -66,7 +66,7 @@ class VCAP::Services::SynchronousServiceGateway < Sinatra::Base
     version = req.version if req.version
     svc = @provisioner.provision_service(version, req.plan)
     if svc
-      VCAP::Services::Api::GatewayProvisionResponse.new(svc).encode
+      VCAP::Services::Api::GatewayHandleResponse.new(svc).encode
     else
       SERVICE_UNAVAILABLE
     end
@@ -91,7 +91,7 @@ class VCAP::Services::SynchronousServiceGateway < Sinatra::Base
 
     handle = @provisioner.bind_instance(req.service_id, req.binding_options)
     if handle
-      VCAP::Services::Api::GatewayBindResponse.new(handle).encode
+      VCAP::Services::Api::GatewayHandleResponse.new(handle).encode
     else
       NOT_FOUND
     end

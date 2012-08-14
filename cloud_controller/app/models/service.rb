@@ -173,7 +173,9 @@ class Service < ActiveRecord::Base
   def verify_auth_token(token)
     if is_builtin?
       key = (self.provider && self.provider != "core") ? self.name + "-" + self.provider : self.name
-      (AppConfig[:builtin_services][key.to_sym][:token] == token)
+      token_a = AppConfig[:builtin_services][key.to_sym][:token]
+      token_b = AppConfig[:builtin_services][key.to_sym][:token_b]
+      (token_a == token || (token_b && token_b == token))
     else
       (self.token == token)
     end

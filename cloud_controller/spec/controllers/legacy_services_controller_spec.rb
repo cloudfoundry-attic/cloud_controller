@@ -49,7 +49,7 @@ describe LegacyServicesController do
 
       it "should support version in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         %w(1.0 2.0).each do |version|
@@ -69,7 +69,7 @@ describe LegacyServicesController do
 
       it "should support version alias in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).with('1.0', 'free').returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).with('1.0', 'free').returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -86,7 +86,7 @@ describe LegacyServicesController do
 
       it "should raise error if version mismatch" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         post_msg :provision do
@@ -105,7 +105,7 @@ describe LegacyServicesController do
 
       it "should support provider in provision request" do
         shim = ServiceProvisionerStub.new
-        shim.stubs(:provision_service).returns({:data => {}, :service_id => 'foo-core', :credentials => {}})
+        shim.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo-core', :credentials => {}})
         gw_pid = start_gateway(@svc, shim)
 
         # cf provider gateway
@@ -120,7 +120,7 @@ describe LegacyServicesController do
 
         run_once = false
         shim_cf = ServiceProvisionerStub.new
-        shim_cf.stubs(:provision_service).returns({:data => {}, :service_id => 'foo-cf', :credentials => {}})
+        shim_cf.stubs(:provision_service).returns({:configuration => {}, :service_id => 'foo-cf', :credentials => {}})
         gw2_pid = start_gateway(svc, shim_cf)
 
         post_msg :provision do
