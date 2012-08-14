@@ -17,13 +17,25 @@ class ServiceBinding < ActiveRecord::Base
   # :label, :name, :credentials, :options
   def for_staging
     data = {}
-    data[:label] = service_config.service.label # what we call the offering
-    data[:tags] = service_config.service.tags
-    data[:name] = service_config.alias # what the user chose to name it
+    cfg = service_config
+    svc = cfg.service
+    data[:label] = get_label
+    data[:tags] = svc.tags
+    data[:name] = cfg.alias # what the user chose to name it
     data[:credentials] = credentials
     data[:options] = binding_options # options specified at bind-time
-    data[:plan] = service_config.plan
-    data[:plan_option] = service_config.plan_option
+    data[:plan] = cfg.plan
+    data[:plan_option] = cfg.plan_option
     data
+  end
+
+  def get_label
+    version = service_config.data["version"]
+    if version
+      "#{service_config.service.name}-#{version}"
+    else
+      # old instance
+      service_config.service.label
+    end
   end
 end
