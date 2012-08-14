@@ -207,6 +207,17 @@ describe Service do
       svc.is_builtin?.should be_true
       svc.verify_auth_token('foo').should be_true
       svc.verify_auth_token('bar').should be_false
+      svc.verify_auth_token(nil).should be_false
+      AppConfig[:builtin_services].delete(:foo)
+    end
+
+    it "should verify against AppConfig with token rotation for builtin services" do
+      AppConfig[:builtin_services][:foo] = {:token => 'foo', :token_b => 'bar'}
+      svc = Service.new(:label => "foo-bar", :url => "http://www.google.com")
+      svc.is_builtin?.should be_true
+      svc.verify_auth_token('foo').should be_true
+      svc.verify_auth_token('bar').should be_true
+      svc.verify_auth_token('foobar').should be_false
       AppConfig[:builtin_services].delete(:foo)
     end
 
