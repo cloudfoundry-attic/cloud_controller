@@ -42,4 +42,13 @@ describe "Specifying a proxy user" do
     it_should_behave_like "any request to test a proxy user"
   end
 
+  context "using jwt tokens with RSA keys" do
+    before :all do
+      CloudSpecHelpers.use_jwt_token_with_rsa_key = true
+    end
+
+    it_should_behave_like "any request to test a proxy user"
+  end
+
+
 end

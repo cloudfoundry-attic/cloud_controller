@@ -12,7 +12,7 @@ gem 'yajl-ruby', :require => ['yajl', 'yajl/json_gem']
 
 gem 'vcap_common', '>= 1.0.10', :git => 'https://github.com/cloudfoundry/vcap-common.git', :ref => 'cbeb8a17'
 gem "vcap_logging", "~> 1.0.0", :git => 'https://github.com/cloudfoundry/common.git', :ref => 'e36886a1'
-gem 'cf-uaa-client', '~> 1.0', :git => 'https://github.com/cloudfoundry/uaa.git', :ref => 'b19eb89b'
+gem 'cf-uaa-client', '~> 1.0', :git => 'https://github.com/cloudfoundry/uaa.git', :ref => 'dad29c90'
 
 group :test do
   gem "rspec"
