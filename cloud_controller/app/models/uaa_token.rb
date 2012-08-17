@@ -1,5 +1,6 @@
 require "uaa/token_coder"
 require "uaa/token_issuer"
+require "uaa/misc"
 
 class UaaToken
 
@@ -14,7 +15,12 @@ class UaaToken
                                                "vmc",
                                                nil)
 
+  @token_key_fetch_failure_count = 3
+
+
   class << self
+
+    attr_accessor :token_key_fetch_failure_count
 
     def is_uaa_token?(token)
       token.nil? || /\s+/.match(token.strip()).nil?? false : true
@@ -25,8 +31,26 @@ class UaaToken
         return nil
       end
 
-      CloudController.logger.debug("uaa token coder #{@uaa_token_coder.inspect}")
       CloudController.logger.debug("Auth token is #{auth_token.inspect}")
+
+      # Try to fetch the token key (public key) from the UAA
+      if token_key_fetch_failure_count > 0 && !@token_key
+        begin
+          CF::UAA::Misc.async=true
+          @token_key ||= CF::UAA::Misc.validation_key(AppConfig[:uaa][:url], AppConfig[:uaa][:resource_id], AppConfig[:uaa][:client_secret])
+
+          if @token_key[:alg] == "SHA256withRSA"
+            CloudController.logger.debug("token key fetched from the uaa #{@token_key.inspect}")
+            @uaa_token_coder = CF::UAA::TokenCoder.new(AppConfig[:uaa][:resource_id],
+                                                       AppConfig[:uaa][:token_secret],
+                                                       @token_key[:value])
+          end
+        rescue => e
+          self.token_key_fetch_failure_count = token_key_fetch_failure_count - 1
+          CloudController.logger.warn("Failed to fetch the token key from the UAA token_key endpoint or recieved symmetric key instead")
+          CloudController.logger.debug("Request to uaa/token_key OR public key init failed. #{@token_key_fetch_failure_count} retries remain. #{e.message}")
+        end
+      end
 
       token_information = nil
       begin
@@ -52,7 +76,6 @@ class UaaToken
       if @access_token.nil? || expired?(@access_token)
         #Get a new one
         @token_issuer.async = true
-        @token_issuer.debug = true
         @token_issuer.logger = CloudController.logger
         @access_token = @token_issuer.client_credentials_grant().auth_header
       end
@@ -62,7 +85,6 @@ class UaaToken
 
     def id_token(email, password)
       @id_token_issuer.async = true
-      @id_token_issuer.debug = true
       @id_token_issuer.logger = CloudController.logger
       id_token = @id_token_issuer.implicit_grant_with_creds(username: email, password: password).auth_header
       CloudController.logger.debug("id_token #{id_token}")
