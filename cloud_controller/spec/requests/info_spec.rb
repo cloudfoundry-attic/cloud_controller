@@ -68,6 +68,15 @@ describe "A GET request to /info" do
     it_should_behave_like "any request"
   end
 
+  context "using jwt tokens with RSA keys" do
+    before :all do
+      CloudSpecHelpers.use_jwt_token_with_rsa_key = true
+    end
+
+    it_should_behave_like "any request"
+  end
+
+
 
 end
 
