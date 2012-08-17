@@ -178,6 +178,15 @@ describe "bulk_api" do
     it_should_behave_like "any request to the bulk api"
   end
 
+  context "using jwt tokens with RSA keys" do
+    before :all do
+      CloudSpecHelpers.use_jwt_token_with_rsa_key = true
+    end
+
+    it_should_behave_like "any request to the bulk api"
+  end
+
+
   def get_users(args=nil)
     get(bulk_users_url, args, @auth_header)
   end
