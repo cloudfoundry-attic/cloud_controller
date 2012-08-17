@@ -123,8 +123,13 @@ describe HealthManager do
     droplets = []
     indices.each do |index|
       droplets << {
-        'droplet' => @app.id, 'index' => index, 'instance' => "badbeef-#{index}", 'state' => 'RUNNING',
-        'version' => @droplet_entry[:live_version], 'state_timestamp' => @droplet_entry[:last_updated]
+        'droplet' => @app.id,
+        'cc_partition' => "default",
+        'index' => index,
+        'instance' => "badbeef-#{index}",
+        'state' => 'RUNNING',
+        'version' => @droplet_entry[:live_version],
+        'state_timestamp' => @droplet_entry[:last_updated]
       }.merge(options)
     end
     { 'droplets' => droplets }
@@ -133,6 +138,7 @@ describe HealthManager do
   def make_crashed_message(options={})
     {
       'droplet' => @app.id,
+      'cc_partition' => "default",
       'version' => "#{@app.staged_package_hash}-#{@app.run_count}",
       'index' => 0,
       'instance' => "badbeef-0",
@@ -167,7 +173,7 @@ describe HealthManager do
 
   it "should detect instances that are down and send a START request" do
     stats = { :frameworks => {}, :runtimes => {}, :down => 0 }
-    should_publish_to_nats "cloudcontrollers.hm.requests", {
+    should_publish_to_nats "cloudcontrollers.hm.requests.default", {
       'droplet' => @app.id,
       'op' => 'START',
       'last_updated' => @app.last_updated.to_i,
@@ -192,7 +198,7 @@ describe HealthManager do
         2 => { :state => 'RUNNING', :timestamp => timestamp, :last_action => @app.last_updated, :instance => '2' },
         3 => { :state => 'RUNNING', :timestamp => timestamp, :last_action => @app.last_updated, :instance => '3' }
       }}
-    should_publish_to_nats "cloudcontrollers.hm.requests", {
+    should_publish_to_nats "cloudcontrollers.hm.requests.default", {
       'droplet' => @app.id,
       'op' => 'STOP',
       'last_updated' => @app.last_updated.to_i,
@@ -238,7 +244,7 @@ describe HealthManager do
     end
 
     it "should spindown app with no acitvity at all" do
-      should_publish_to_nats('cloudcontrollers.hm.requests', {
+      should_publish_to_nats('cloudcontrollers.hm.requests.default', {
                                :droplet =>  @app.id,
                                :op => :SPINDOWN
                              })
@@ -267,7 +273,7 @@ describe HealthManager do
     end
 
     it "should spindown an app with stale activity" do
-      should_publish_to_nats('cloudcontrollers.hm.requests', {
+      should_publish_to_nats('cloudcontrollers.hm.requests.default', {
                                :droplet =>  @app.id,
                                :op => :SPINDOWN
                              })
@@ -332,15 +338,15 @@ describe HealthManager do
       'last_updated' => stoppee_instance[:timestamp],
       'instances' => [stoppee_instance[:instance]]
     }
-    should_publish_to_nats("cloudcontrollers.hm.requests", stop_message)
-    should_publish_to_nats("cloudcontrollers.hm.requests", make_restart_message('indices'=>[1]))
+    should_publish_to_nats("cloudcontrollers.hm.requests.default", stop_message)
+    should_publish_to_nats("cloudcontrollers.hm.requests.default", make_restart_message('indices'=>[1]))
 
     @hm.analyze_app(@app.id, @droplet_entry, stats)
     @hm.deque_a_batch_of_requests
   end
 
   def ensure_non_flapping_restart
-    should_publish_to_nats "cloudcontrollers.hm.requests", make_restart_message
+    should_publish_to_nats "cloudcontrollers.hm.requests.default", make_restart_message
     @hm.process_heartbeat_message(make_heartbeat_message.to_json)
     droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
     @hm.deque_a_batch_of_requests
@@ -350,7 +356,7 @@ describe HealthManager do
 
   def ensure_flapping_delayed_restart(delay)
     in_em_with_fiber do |f|
-      should_publish_to_nats "cloudcontrollers.hm.requests", make_restart_message('flapping' => true)
+      should_publish_to_nats "cloudcontrollers.hm.requests.default", make_restart_message('flapping' => true)
 
       @hm.process_heartbeat_message(make_heartbeat_message.to_json)
       droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
@@ -433,7 +439,7 @@ describe HealthManager do
 
     apps.each do |app|
 
-      should_publish_to_nats("cloudcontrollers.hm.requests", {
+      should_publish_to_nats("cloudcontrollers.hm.requests.default", {
                                'droplet' => app.id ,
                                'op' => 'START',
                                'last_updated' => app.last_updated.to_i,
@@ -447,6 +453,7 @@ describe HealthManager do
     apps.each do |app|
       @hm.process_exited_message({
                                    'droplet' => app.id,
+                                   'cc_partition' => "default",
                                    'version' => "#{app.staged_package_hash}-#{app.run_count}",
                                    'index' => 0,
                                    'instance' => 0,

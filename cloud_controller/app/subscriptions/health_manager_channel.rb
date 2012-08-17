@@ -9,7 +9,7 @@ EM.next_tick do
   # if the staged application store is not 'shared' between all
   # CloudControllers.
 
-  NATS.subscribe('cloudcontrollers.hm.requests', :queue => :cc) do |msg|
+  NATS.subscribe("cloudcontrollers.hm.requests.#{AppConfig[:cc_partition]}", :queue => :cc) do |msg|
     begin
       payload = Yajl::Parser.parse(msg, :symbolize_keys => true)
       CloudController::UTILITY_FIBER_POOL.spawn do

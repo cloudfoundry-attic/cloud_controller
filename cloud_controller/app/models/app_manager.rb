@@ -261,7 +261,11 @@ class AppManager
   def updated
     once_app_is_staged do
       unless app.staging_failed?
-        NATS.publish('droplet.updated', Yajl::Encoder.encode(:droplet => app.id))
+        message = {
+          :droplet => app.id,
+          :cc_partition => AppConfig[:cc_partition]
+        }
+        NATS.publish('droplet.updated', Yajl::Encoder.encode(message))
       end
     end
   end
@@ -573,6 +577,7 @@ class AppManager
     data[:limits] = app.limits
     data[:env] = app.environment_variables
     data[:users] = [app.owner.email]  # XXX - should we collect all collabs here?
+    data[:cc_partition] = AppConfig[:cc_partition]
     data
   end
 
