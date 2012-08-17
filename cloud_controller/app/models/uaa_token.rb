@@ -1,5 +1,6 @@
 require "uaa/token_coder"
 require "uaa/token_issuer"
+require "uaa/misc"
 
 class UaaToken
 
@@ -14,6 +15,8 @@ class UaaToken
                                                "vmc",
                                                nil)
 
+  @token_key_fetch_failure_count = 3
+
   class << self
 
     def is_uaa_token?(token)
@@ -25,8 +28,22 @@ class UaaToken
         return nil
       end
 
-      CloudController.logger.debug("uaa token coder #{@uaa_token_coder.inspect}")
       CloudController.logger.debug("Auth token is #{auth_token.inspect}")
+
+      # Try to fetch the token key (public key) from the UAA
+      begin
+        CF::UAA::Misc.async=true
+        CF::UAA::Misc.logger = CloudController.logger
+        @token_key ||= CF::UAA::Misc.validation_key(AppConfig[:uaa][:url], AppConfig[:uaa][:resource_id], AppConfig[:uaa][:client_secret])
+        CloudController.logger.debug("token key fetched from the uaa #{@token_key.inspect}") if @token_key[:alg] == "SHA256withRSA"
+        @uaa_token_coder = CF::UAA::TokenCoder.new(AppConfig[:uaa][:resource_id],
+                                                   AppConfig[:uaa][:token_secret],
+                                                   @token_key[:value])
+      rescue => e
+        @token_key_fetch_failure_count -= 1
+        CloudController.logger.warn("Failed to fetch the token key from the UAA token_key endpoint or symmetric key fetched")
+        CloudController.logger.debug("Request to uaa/token_key OR public key init failed. #{@token_key_fetch_failure_count} retries remain. #{e.message}")
+      end unless @token_key_fetch_failure_count == 0 || !@token_key.nil?
 
       token_information = nil
       begin
