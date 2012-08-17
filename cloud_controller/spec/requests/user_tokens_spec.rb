@@ -34,6 +34,14 @@ describe "Requesting a new user token" do
     it_should_behave_like "any request for a new user token"
   end
 
+  context "using jwt tokens with RSA keys" do
+    before :all do
+      CloudSpecHelpers.use_jwt_token_with_rsa_key = true
+    end
+
+    it_should_behave_like "any request for a new user token"
+  end
+
   context "When user_expire is specified" do
     before { UserToken.token_expire = 1.day }
     let :token do
