@@ -568,7 +568,7 @@ class AppManager
         :label   => sb.get_label,
         :vendor  => svc.name,
         :version => svc.version,
-        :tags    => svc.tags,
+        :tags    => sb.get_tags,
         :plan    => cfg.plan,
         :plan_option => cfg.plan_option,
         :credentials => sb.credentials,

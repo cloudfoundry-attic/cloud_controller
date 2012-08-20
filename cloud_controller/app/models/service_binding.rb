@@ -20,7 +20,7 @@ class ServiceBinding < ActiveRecord::Base
     cfg = service_config
     svc = cfg.service
     data[:label] = get_label
-    data[:tags] = svc.tags
+    data[:tags] = get_tags
     data[:name] = cfg.alias # what the user chose to name it
     data[:credentials] = credentials
     data[:options] = binding_options # options specified at bind-time
@@ -37,5 +37,13 @@ class ServiceBinding < ActiveRecord::Base
       # old instance
       service_config.service.label
     end
+  end
+
+  def get_tags
+    svc = service_config.service
+    tags = svc.tags.clone
+    tags << get_label
+    tags << svc.name
+    tags
   end
 end
