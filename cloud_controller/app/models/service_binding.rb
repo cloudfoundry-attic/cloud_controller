@@ -19,23 +19,16 @@ class ServiceBinding < ActiveRecord::Base
     data = {}
     cfg = service_config
     svc = cfg.service
-    data[:label] = get_label
-    data[:tags] = svc.tags
+    data[:label] = cfg.get_label
+    data[:tags] = cfg.get_tags
     data[:name] = cfg.alias # what the user chose to name it
     data[:credentials] = credentials
     data[:options] = binding_options # options specified at bind-time
     data[:plan] = cfg.plan
     data[:plan_option] = cfg.plan_option
+    data[:type] = svc.synthesize_service_type
+    data[:version] = svc.version
+    data[:vendor] = svc.name
     data
-  end
-
-  def get_label
-    version = service_config.data["version"]
-    if version
-      "#{service_config.service.name}-#{version}"
-    else
-      # old instance
-      service_config.service.label
-    end
   end
 end

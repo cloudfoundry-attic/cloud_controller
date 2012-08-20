@@ -219,4 +219,24 @@ class ServiceConfig < ActiveRecord::Base
       },
     }
   end
+
+  # generate correct label for backward compatible concern.
+  # the 'label' field will be removed in the future.
+  def get_label
+    version = data["version"]
+    if version
+      "#{service.name}-#{version}"
+    else
+      # old instance
+      service.label
+    end
+  end
+
+  def get_tags
+    svc = self.service
+    tags = svc.tags.clone
+    tags << get_label
+    tags << svc.name
+    tags
+  end
 end

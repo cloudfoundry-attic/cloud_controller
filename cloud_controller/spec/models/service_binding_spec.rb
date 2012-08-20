@@ -56,7 +56,7 @@ describe ServiceBinding do
   end
 
   describe '#for_staging' do
-    it "should show correct label for multi versions service" do
+    it "should show correct label and tags for multi versions service" do
       u = User.new(:email => 'foo@bar.com')
       u.set_and_encrypt_password('foobar')
       u.save
@@ -71,7 +71,7 @@ describe ServiceBinding do
       a.save
       a.should be_valid
 
-      svc = Service.new(:label => "foo-1.0", :url=>"http://example.com", :token => 'bar')
+      svc = Service.new(:label => "foo-1.0", :url=>"http://example.com", :token => 'bar', :tags => ['demo'])
       svc.save
       svc.should be_valid
 
@@ -89,6 +89,13 @@ describe ServiceBinding do
       binding.should be_valid
 
       binding.for_staging[:label].should == "foo-2.0"
+
+      tags = binding.for_staging[:tags]
+      tags.size.should == 3
+      expected_tags = ["foo", "foo-2.0", "demo"]
+      expected_tags.each do |tag|
+        tags.should include tag
+      end
     end
   end
 end
