@@ -1459,7 +1459,6 @@ describe ServicesController do
         begin
           tmp_file = Tempfile.new('foo_import_from_data')
           put :import_from_data, :id => @cfg.name, :data_file => tmp_file
-          puts response.body
           response.status.should == 200
           resp = Yajl::Parser.parse(response.body)
           resp["job_id"].should == "abc"

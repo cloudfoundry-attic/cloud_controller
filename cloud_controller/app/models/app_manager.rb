@@ -562,20 +562,7 @@ class AppManager
     data[:executableFile] = app.resolve_staged_package_path
     data[:executableUri] = "/staged_droplets/#{app.id}/#{app.staged_package_hash}"
     data[:version] = app.generate_version
-    data[:services] = app.service_bindings.map do |sb|
-      cfg = sb.service_config
-      svc = cfg.service
-      { :name    => cfg.alias,
-        :type    => svc.synthesize_service_type,
-        :label   => sb.get_label,
-        :vendor  => svc.name,
-        :version => svc.version,
-        :tags    => svc.tags,
-        :plan    => cfg.plan,
-        :plan_option => cfg.plan_option,
-        :credentials => sb.credentials,
-      }
-    end
+    data[:services] = app.service_bindings.map {|sb| sb.for_dea }
     data[:limits] = app.limits
     data[:env] = app.environment_variables
     data[:users] = [app.owner.email]  # XXX - should we collect all collabs here?
