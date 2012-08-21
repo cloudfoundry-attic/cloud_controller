@@ -45,6 +45,8 @@ describe ServicesController do
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
             :url   => 'http://www.google.com')
         end
         AppConfig[:builtin_services].delete(:foo)
@@ -57,6 +59,8 @@ describe ServicesController do
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
             :url   => 'http://localhost:56789')
         end
         response.status.should == 200
@@ -68,6 +72,8 @@ describe ServicesController do
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
             :url   => 'http://localhost:56789')
         end
         response.status.should == 200
@@ -79,6 +85,8 @@ describe ServicesController do
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
             :url   => 'http://localhost:56789')
         end
         response.status.should == 403
@@ -89,6 +97,8 @@ describe ServicesController do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
             :url => 'http://www.google.com',
+            :supported_versions => [],
+            :version_aliases => {},
             :plans => ['foo'])
         end
         response.status.should == 403
@@ -110,6 +120,8 @@ describe ServicesController do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
             :url   => 'http://www.google.com',
+            :supported_versions => [],
+            :version_aliases => {},
             :acls  => acls,
             :plans => ['foo'],
             :timeout => 20,
@@ -141,6 +153,8 @@ describe ServicesController do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
             :url   => 'http://www.google.com',
+            :supported_versions => [],
+            :version_aliases => {},
             :plans => ['foo'],
             :description => 'foobar')
         end
@@ -163,6 +177,8 @@ describe ServicesController do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
             :plans => ['foo'],
+            :supported_versions => [],
+            :version_aliases => {},
             :url   => 'http://www.google.com')
         end
         response.status.should == 403
@@ -173,6 +189,8 @@ describe ServicesController do
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
             :url   => 'http://www.google.com')
         end
         response.status.should == 200
@@ -180,6 +198,8 @@ describe ServicesController do
         post_msg :create do
           VCAP::Services::Api::ServiceOfferingRequest.new(
             :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
             :plans => ['foo'],
             :url   => 'http://www.google.com')
         end
@@ -613,6 +633,8 @@ describe ServicesController do
       svc_test.url      = "http://localhost:56789"
       svc_test.token    = 'foobar'
       svc_test.plans    = ['free', 'nonfree']
+      svc_test.supported_versions = ["bar", "baz"]
+      svc_test.version_aliases = {"current" => "bar"}
       svc_test.save
       svc_test.should be_valid
       @svc_test = svc_test
@@ -650,6 +672,7 @@ describe ServicesController do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'bar-foo',
             :name  => 'foo',
+            :version => 'bar',
             :plan  => 'free')
         end
         response.status.should == 404
@@ -663,6 +686,7 @@ describe ServicesController do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
             :name  => 'foo',
+            :version => 'bar',
             :plan  => 'free')
         end
         response.status.should == 200
@@ -677,6 +701,7 @@ describe ServicesController do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
             :provider => 'test',
+            :version => 'bar',
             :name  => 'foo',
             :plan  => 'free')
         end
@@ -693,6 +718,7 @@ describe ServicesController do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
             :name  => 'foo',
+            :version => 'bar',
             :plan  => 'free')
         end
         response.status.should == 200
@@ -701,6 +727,7 @@ describe ServicesController do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
             :name  => 'foo',
+            :version => 'bar',
             :plan  => 'free')
         end
         response.status.should == 400
@@ -717,6 +744,7 @@ describe ServicesController do
           VCAP::Services::Api::CloudControllerProvisionRequest.new(
             :label => 'foo-bar',
             :name  => "foo",
+            :version => 'bar',
             :plan  => 'free'
           )
         end

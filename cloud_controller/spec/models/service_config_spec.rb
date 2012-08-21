@@ -123,8 +123,6 @@ describe ServiceConfig do
       svc.save
       svc.should be_valid
 
-
-      # default version, backward compatible logic, should be removed in the future
       data = { 'plan' => 'free'}
 
       cfg = ServiceConfig.new(:user_id => 1, :service_id => svc.id, :alias => 'foobar',

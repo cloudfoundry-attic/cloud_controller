@@ -225,19 +225,12 @@ class ServicesController < ApplicationController
     svc = Service.find_by_label_and_provider(req.label, req.provider == "core" ? nil : req.provider)
     raise CloudError.new(CloudError::SERVICE_NOT_FOUND) unless svc && svc.visible_to_user?(user, req.plan)
 
-    # override version in label if version is given in request.
     # We support following Provision request and provision version 2.0 instance.
     # {'label' => 'Service-1.0', 'version' => '2.0'}
     # In the future, version info will be removed from label.
-    version = nil
-    if req.version
-      # translate alias to version in request
-      version = svc.version_aliases[req.version.to_s] || req.version
-      raise CloudError.new(CloudError::UNSUPPORTED_VERSION, req.version) unless svc.support_version? version
-    end
+    version = svc.version_aliases[req.version.to_s] || req.version
+    raise CloudError.new(CloudError::UNSUPPORTED_VERSION, req.version) unless svc.support_version? version
 
-    # backward compatible, svc.version will be removed.
-    version ||= svc.version
     cfg = ServiceConfig.provision(svc, user, req.name, req.plan, req.plan_option, version)
 
     handle = {

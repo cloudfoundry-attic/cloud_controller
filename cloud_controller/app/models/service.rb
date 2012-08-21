@@ -212,8 +212,7 @@ class Service < ActiveRecord::Base
   end
 
   def support_version? version
-    # backward compatible, self.version will be removed.
-    (supported_versions.include? version) || (self.version == version)
+    supported_versions.include? version
   end
 
   def version_to_alias version

@@ -45,8 +45,6 @@ class DefaultController < ApplicationController
         ret[svc_type][svc.name] ||= {}
 
         versions = svc.supported_versions
-        # backward compatible, svc.version will be removed.
-        versions = [ svc.version ] if versions.empty?
         versions.each do |version|
           version_alias = svc.version_to_alias(version)
           next if (versions.size > 1 && version_alias != "current")

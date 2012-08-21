@@ -30,6 +30,7 @@ describe DefaultController do
       svc.url   = "http://localhost:56789"
       svc.token = 'foobar'
       svc.plans = ['free', 'nonfree']
+      svc.supported_versions = ['bar']
       svc.save
       svc.should be_valid
       @svc = svc
@@ -46,6 +47,7 @@ describe DefaultController do
         res = Yajl::Parser.parse(response.body)
 
         res['generic']['foo']['bar'].should_not be_nil
+        res['generic']['foo']['baz'].should be_nil
       end
 
       it "should list current version only for service with multiple versions" do

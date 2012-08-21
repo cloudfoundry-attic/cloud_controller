@@ -17,9 +17,6 @@ class ServiceConfig < ActiveRecord::Base
 
   def self.provision(service, user, cfg_alias, plan, plan_option, version)
 
-    # backward compatible, use default version if not given
-    version ||= service.version
-
     # Ordering here is important. What follows each numbered operation
     # assumes that it failed.
     #

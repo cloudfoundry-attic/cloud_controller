@@ -115,6 +115,7 @@ describe LegacyServicesController do
         svc.url   = "http://localhost:45678"
         svc.token = 'foobar'
         svc.plans = ['free']
+        svc.supported_versions = ['1.0']
         svc.save
         svc.should be_valid
 
