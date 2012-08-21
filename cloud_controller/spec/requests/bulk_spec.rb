@@ -39,59 +39,6 @@ describe "bulk_api" do
       end
     end
 
-    describe 'bulk#users' do
-
-      before :all do
-        make_a_bunch_of_users(200)
-      end
-
-      it 'requires authentication' do
-        get bulk_users_url
-        response.status.should == 401
-      end
-
-      it 'accepts request without parameters' do
-        get_users
-        response.status.should == 200
-        results.size.should > 1
-      end
-
-      it 'returns batches according to the token supplied' do
-        get_users :batch_size => 50
-        results.size.should == 50
-        token.should_not be_nil
-
-        saved_results = results
-
-        get_users({:bulk_token => token, :batch_size => 100})
-
-        results.size.should == 100
-
-        Hash.should === saved_results
-        Hash.should === results
-
-        saved_results.merge(results).size.should == 150 #no intersection
-
-        get_users({:bulk_token => token, :batch_size => 100})
-        results.size.should == 52 #all remaining users returned, for the total of 202 created
-      end
-
-      it "doesn't allow dangerous manipulation of the token" do
-        get_users :batch_size => 50
-        results.size.should == 50
-        token.should_not be_nil
-
-        tampered_token = token
-
-        Hash.should === tampered_token
-        tampered_token['foo foo'] = 42
-        get_users :bulk_token => tampered_token
-
-        response.status.should == 400
-      end
-
-    end
-
     describe 'bulk#apps' do
       it 'requires authentication' do
         get bulk_apps_url
@@ -123,9 +70,7 @@ describe "bulk_api" do
           res.last["id"].should_not be_nil
           res.last["framework"].should == 'sinatra'
         }
-
       end
-
 
       it "respects the batch_size parameter" do
         [3,5].each { |size|
@@ -146,7 +91,6 @@ describe "bulk_api" do
       end
 
       it "should eventually return entire collection, batch after batch" do
-
         args = {:batch_size => 2}
         apps = {}
 
@@ -162,7 +106,6 @@ describe "bulk_api" do
         get_apps(args)
         results.size.should == 0
       end
-
     end
   end
 
@@ -215,9 +158,5 @@ describe "bulk_api" do
         response.should redirect_to(app_get_url(data['name']))
       end.should change(App, :count).by(1)
     end
-  end
-
-  def make_a_bunch_of_users(n=100)
-    n.times { build_user("#{random_name}@example.com") }
   end
 end
