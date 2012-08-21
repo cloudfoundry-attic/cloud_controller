@@ -474,6 +474,8 @@ class AppManager
         message = message.dup
         message[:executableUri] = download_app_uri(message[:executableUri])
         message[:index] = index
+        message[:debug] = @app.metadata[:debug]
+        message[:console] = @app.metadata[:console]
         dea_id = find_dea_for(message)
         json = Yajl::Encoder.encode(message)
         if dea_id
