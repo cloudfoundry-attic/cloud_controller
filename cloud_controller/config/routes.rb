@@ -31,7 +31,6 @@ CloudController::Application.routes.draw do
   #retrieving batches of items. An opaque token is returned with every request to resume the retrieval
   #from where the last request left off.
   get    'bulk/apps'                 => 'bulk#apps',            :as => :bulk_apps
-  get    'bulk/users'                => 'bulk#users',           :as => :bulk_users
   get    'bulk/counts'               => 'bulk#counts',          :as => :bulk_counts
 
   # Stagers interact with the CC via these urls

@@ -7,12 +7,8 @@ class BulkController < ApplicationController
 
   DEFAULT_BATCH_SIZE = 200
 
-  def users
-    render_results_and_token_for_model(User)
-  end
-
   def apps
-    render_results_and_token_for_model(App)
+    render_results_and_token_for_apps
   end
 
   def counts
@@ -44,29 +40,30 @@ class BulkController < ApplicationController
     end
   end
 
-  def render_results_and_token_for_model(model)
-    results = retrieve_results(model)
+  def render_results_and_token_for_apps
+    results = retrieve_results
     update_token(results)
-    render :json => { :results => hash_by_id(model, results), :bulk_token => bulk_token }
+    render :json => { :results => hash_apps_by_id(results), :bulk_token => bulk_token }
   end
 
-  def retrieve_results(model)
+  def retrieve_results
     CloudController.logger.debug("Params: #{params}")
     CloudController.logger.debug("Retrieving bulk results for bulk_token: #{bulk_token}")
     CloudController.logger.debug("WHERE-clause: #{where_clause}")
-
-    model.where(where_clause).order('id').limit(batch_size).to_a
+    App.where(where_clause).order('id').limit(batch_size).to_a
   end
 
-  def hash_by_id(model, arr)
-    arr.inject({}) { |hash, elem| hash[elem.id] = hashify(model,elem); hash }
+  def hash_apps_by_id(arr)
+    arr.inject({}) { |h, app| h[app.id] = hashify_app(app); h }
   end
 
-  def hashify(model, record)
-    model.column_names.inject(Hash.new) { |hash, col|
-      hash[col] = record.send(col)
-      hash
-    }
+  def hashify_app(app)
+    h = {}
+    [:id, :instances, :state, :framework, :runtime, :memory, :package_state, :updated_at
+    ].each {|field| h[field] = app.send(field) }
+
+    h[:version] = app.generate_version
+    h
   end
 
   def update_token(results)
