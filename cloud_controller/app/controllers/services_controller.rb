@@ -10,7 +10,7 @@ class ServicesController < ApplicationController
   include ServicesHelper
 
   before_filter :validate_content_type, :except => [:import_from_data]
-  before_filter :require_service_auth_token, :only => [:create, :get, :delete, :update_handle, :list_handles, :list_brokered_services]
+  before_filter :require_service_auth_token, :only => [:create, :get, :delete, :update_handle, :list_handles, :list_proxied_services]
   before_filter :require_user, :only =>
   [
     :provision,
@@ -107,8 +107,8 @@ class ServicesController < ApplicationController
       # register with us to get a token.
       # or, it's a brokered service
       svc = Service.new(req.extract)
-      if AppConfig[:service_broker] and \
-         AppConfig[:service_broker][:token].index(@service_auth_token) and \
+      if AppConfig[:service_proxy] and \
+         AppConfig[:service_proxy][:token].index(@service_auth_token) and \
          !svc.is_builtin?
         attrs = req.extract.dup
         attrs[:token] = @service_auth_token
@@ -181,10 +181,10 @@ class ServicesController < ApplicationController
     render :json => {:handles => handles}
   end
 
-  # List brokered services
-  def list_brokered_services
-    if AppConfig[:service_broker].nil? or \
-       AppConfig[:service_broker][:token].index(@service_auth_token).nil?
+  # List proxied (brokered and marketplace) services
+  def list_proxied_services
+    if AppConfig[:service_proxy].nil? or \
+       AppConfig[:service_proxy][:token].index(@service_auth_token).nil?
       raise CloudError.new(CloudError::FORBIDDEN)
     end
 
@@ -193,7 +193,7 @@ class ServicesController < ApplicationController
     result = result.map { |svc| {:label => svc.label, \
                   :description => svc.description, :acls => svc.acls } }
 
-    render :json =>  {:brokered_services => result}
+    render :json =>  {:proxied_services => result}
   end
 
   # Get a service offering on the CC

@@ -52,8 +52,9 @@ CloudController::Application.routes.draw do
   post   'services/v1/binding_tokens'                => 'binding_tokens#create',   :as => :binding_token_create
   get    'services/v1/binding_tokens/:binding_token' => 'binding_tokens#get',      :as => :binding_token_get,      :binding_token => /[^\/]+/
   delete 'services/v1/binding_tokens/:binding_token' => 'binding_tokens#delete',   :as => :binding_token_delete,   :binding_token => /[^\/]+/
-  # Brokered Services
-  get    'brokered_services/v1/offerings' => 'services#list_brokered_services',   :as => :service_list_brokered_services
+
+  # Proxied (Brokered and Marketplace) Services
+  get    'proxied_services/v1/offerings' => 'services#list_proxied_services',   :as => :service_list_proxied_services
 
   # Service lifecycle apis
   post   'services/v1/configurations/:id/snapshots'          => 'services#create_snapshot',      :as => :service_create_snapshot,       :id   => /[^\/]+/
