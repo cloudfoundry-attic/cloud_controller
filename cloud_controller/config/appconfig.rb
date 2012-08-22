@@ -171,25 +171,25 @@ if AppConfig[:builtin_services]
   end
 end
 
-# Service broker config
-if AppConfig[:service_broker]
-  unless AppConfig[:service_broker].kind_of? Hash
-    klass = AppConfig[:service_broker].class
-    $stderr.puts "FATAL: Service broker config is invalid. Expected Hash, got #{klass}."
+# Service proxy (broker / marketplace) config
+if AppConfig[:service_proxy]
+  unless AppConfig[:service_proxy].kind_of? Hash
+    klass = AppConfig[:service_proxy].class
+    $stderr.puts "FATAL: Service proxy (broker/marketplace) config is invalid. Expected Hash, got #{klass}."
     exit 1
   end
 
-  unless AppConfig[:service_broker].has_key? :token
-    $stderr.puts "FATAL: Service broker require token key"
+  unless AppConfig[:service_proxy].has_key? :token
+    $stderr.puts "FATAL: Service proxy require token key"
     exit 1
   end
 
-  token = AppConfig[:service_broker][:token]
+  token = AppConfig[:service_proxy][:token]
   unless (token.kind_of? Array)
     $stderr.puts "FATAL: Token must be Array #{token.class} given."
     exit 1
   end
-  AppConfig[:service_broker][:token] = token.map {|t| t.to_s}
+  AppConfig[:service_proxy][:token] = token.map {|t| t.to_s}
 end
 
 c = OpenSSL::Cipher::Cipher.new('blowfish')

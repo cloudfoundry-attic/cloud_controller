@@ -147,8 +147,8 @@ builtin_services:
   blob:
     token: "0xdeadbeef"
 
-# Service broker
-service_broker:
+# Service proxy (broker / marketplace)
+service_proxy:
     token: ["0xdeadbeef"]
 
 # lifecycle
