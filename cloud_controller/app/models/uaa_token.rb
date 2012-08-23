@@ -93,7 +93,7 @@ class UaaToken
 
     def user_account_instance
       if @user_account.nil?
-        @user_account = CF::UAA::UserAccount.new(AppConfig[:uaa][:url], UaaToken.access_token, true)
+        @user_account = CF::UAA::UserAccount.new(AppConfig[:uaa][:url], UaaToken.access_token)
         @user_account.async = true
         @user_account.logger = CloudController.logger
       end
