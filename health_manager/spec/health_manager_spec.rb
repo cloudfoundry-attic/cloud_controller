@@ -313,6 +313,39 @@ describe HealthManager do
     ensure_gaveup_restarting
   end
 
+  describe 'cc_partition' do
+    it 'should ignore heartbeat with mismatched cc_partition' do
+      should_publish_to_nats("cloudcontrollers.hm.requests.default",make_restart_message('indices'=>[1]))
+      hb = make_heartbeat_message('indices' => [0,1,2])
+
+      hb['droplets'][1]['cc_partition'].should == 'default'
+
+      # changing the value will make hm ignore this heartbeat,
+      # resulting in restart message being sent
+      hb['droplets'][1]['cc_partition'] = 'bogus_partition'
+
+      @hm.process_heartbeat_message(hb.to_json)
+      @droplet_entry = @hm.droplets[@app.id]
+
+      @hm.analyze_app(@app.id, @droplet_entry, make_stats)
+      @hm.deque_a_batch_of_requests
+    end
+
+    it 'should interpret absent cc_partition information as "default"' do
+      hb = make_heartbeat_message('indices' => [0,1,2])
+
+      # remove cc_partition entry for instance 1.
+      # the absence of value will be intreted the same as a 'default' value
+      # i.e., there will be no restart.
+      hb['droplets'][1].delete('cc_partition').should == 'default'
+
+      @hm.process_heartbeat_message(hb.to_json)
+      @droplet_entry = @hm.droplets[@app.id]
+      @hm.analyze_app(@app.id, @droplet_entry, make_stats)
+      @hm.deque_a_batch_of_requests
+    end
+  end
+
   it 'should stop instance with mismatched prod flag' do
     stats = make_stats
 

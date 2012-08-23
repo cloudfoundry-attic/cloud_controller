@@ -79,6 +79,8 @@ class HealthManager
 
   INFINITE_PRIORITY = 2_000_000_000
 
+  DEFAULT_PARTITION = "default"
+
   def self.start(options)
     health_manager = new(options)
     health_manager.run
@@ -107,7 +109,7 @@ class HealthManager
 
     @spindown_inactive_apps = @inactivity_period_for_spindown > 0
 
-    @cc_partition = config['cc_partition'] || "default"
+    @cc_partition = config['cc_partition'] || DEFAULT_PARTITION
 
     @droplets = {}
     @pending_restart = {}
@@ -481,16 +483,21 @@ class HealthManager
     "#{'%.1f' % elapsed_ms}ms"
   end
 
+  def partition_match?(value)
+    value ||= DEFAULT_PARTITION
+    value == @cc_partition
+  end
+
   def process_updated_message(message)
     message = parse_json(message)
-    return unless message['cc_partition'] == @cc_partition
+    return unless partition_match?(message['cc_partition'])
     VCAP::Component.varz[:droplet_updated_msgs_received] += 1
     ensure_connected { update_droplet App.find_by_id(message['droplet']) }
   end
 
   def process_exited_message(message)
     exit_message = parse_json(message)
-    return unless exit_message['cc_partition'] == @cc_partition
+    return unless partition_match?(exit_message['cc_partition'])
     VCAP::Component.varz[:droplet_exited_msgs_received] += 1
     droplet_id = exit_message['droplet']
     version = exit_message['version']
@@ -593,7 +600,7 @@ class HealthManager
     parsed_message = parse_json(message)
     dea_prod = parsed_message['prod']
     parsed_message['droplets'].each do |heartbeat|
-      next unless heartbeat['cc_partition'] == @cc_partition
+      next unless partition_match?(heartbeat['cc_partition'])
       droplet_id = heartbeat['droplet']
       instance = heartbeat['instance']
       droplet_entry = @droplets[droplet_id]
