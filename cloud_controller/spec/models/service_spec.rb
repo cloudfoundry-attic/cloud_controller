@@ -255,6 +255,50 @@ describe Service do
     end
   end
 
+  describe "#hash_to_service_offering" do
+    before :each do
+      @user_foo = User.new(:email => 'a@foo.com')
+      @user_foo.set_and_encrypt_password('foo')
+      @user_foo.should be_valid
+
+      @user_bar = User.new(:email => 'b@bar.com')
+      @user_bar.set_and_encrypt_password('bar')
+      @user_bar.should be_valid
+
+      @user_baz = User.new(:email => 'c@baz.com')
+      @user_baz.set_and_encrypt_password('baz')
+      @user_baz.should be_valid
+
+      @service = make_service(
+        :url   => 'http://www.foo.com',
+        :plans => ['plan_a', 'plan_b'],
+        :label => 'foo-1.0',
+        :token => 'foobar',
+        :acls  => {
+          'wildcards' => ['*@foo.com', '*@bar.com'],
+          'plans' => {
+            'plan_a' => {'wildcards' => ['*@foo.com']}
+          }
+        }
+      )
+      @service.should be_valid
+    end
+
+    it "should filter plans accordings to acl" do
+      foo = @service.hash_to_service_offering(@user_foo)
+      foo[:plans].should include "plan_a"
+      foo[:plans].should include "plan_b"
+
+      bar = @service.hash_to_service_offering(@user_bar)
+      bar[:plans].should_not include "plan_a"
+      bar[:plans].should include "plan_b"
+
+      baz = @service.hash_to_service_offering(@user_baz)
+      baz[:plans].should_not include "plan_a"
+      baz[:plans].should_not include "plan_b"
+    end
+  end
+
   def make_service(opts)
     svc = Service.new
     opts.each do |k, v|

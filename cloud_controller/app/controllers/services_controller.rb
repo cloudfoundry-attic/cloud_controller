@@ -62,7 +62,7 @@ class ServicesController < ApplicationController
       svc_provider = svc.provider || "core"
       ret[svc_type][svc.name][svc_provider] ||= {}
       ret[svc_type][svc.name][svc_provider][svc.version] ||= {}
-      ret[svc_type][svc.name][svc_provider][svc.version] = svc.hash_to_service_offering
+      ret[svc_type][svc.name][svc_provider][svc.version] = svc.hash_to_service_offering(user)
     end
 
     render :json => ret

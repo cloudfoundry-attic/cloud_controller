@@ -181,26 +181,37 @@ class Service < ActiveRecord::Base
     end
   end
 
-  def hash_to_service_offering
-    svc_offering = {
-      :label => self.label,
-      :url   => self.url
-    }
-    svc_offering[:description]     = self.description     if self.description
-    svc_offering[:info_url]        = self.info_url        if self.info_url
-    svc_offering[:tags]            = self.tags            if self.tags
-    svc_offering[:plans]           = self.plans           if self.plans
-    svc_offering[:cf_plan_id]      = self.cf_plan_id      if self.cf_plan_id
-    svc_offering[:plan_options]    = self.plan_options    if self.plan_options
-    svc_offering[:binding_options] = self.binding_options if self.binding_options
-    svc_offering[:acls]            = self.acls            if self.acls
-    svc_offering[:active]          = self.active          if self.active
-    svc_offering[:timeout]         = self.timeout         if self.timeout
-    svc_offering[:provider]        = self.provider        if self.provider
-    svc_offering[:supported_versions] = self.supported_versions if self.supported_versions
-    svc_offering[:version_aliases]    = self.version_aliases    if self.version_aliases
-    svc_offering[:default_plan]    = self.default_plan    if self.default_plan
-    return svc_offering
+  def hash_to_service_offering(user=nil)
+    svc_offering = {}
+    required_keys = [
+      :label,
+      :url,
+      :description,
+      :info_url,
+      :tags,
+      :cf_plan_id,
+      :plan_options,
+      :binding_options,
+      :acls,
+      :active,
+      :timeout,
+      :provider,
+      :supported_versions,
+      :version_aliases,
+      :default_plan,
+    ]
+
+    required_keys.each do |key|
+      svc_offering[key] = self.send(key) if self.send(key)
+    end
+
+    if user
+      svc_offering[:plans] = self.plans.select{|plan| visible_to_user?(user, plan)}
+    else
+      svc_offering[:plans] = self.plans
+    end
+
+    svc_offering
   end
 
   def cf_plan_id_matches_plans
