@@ -124,9 +124,7 @@ class App < ActiveRecord::Base
   def staging_task_properties
     services = service_bindings(true).map {|sb| sb.for_staging}
     { "services"       => services,
-      "framework"      => framework,
       "framework_info" => Framework.find(framework).options,
-      "runtime"        => runtime,
       "runtime_info"   => Runtime.find(runtime).options,
       "resources"      => resource_requirements,
       "environment"    => environment,

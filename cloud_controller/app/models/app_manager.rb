@@ -481,7 +481,6 @@ class AppManager
         :limits => message[:limits],
         :name => message[:name],
         :runtime_info => message[:runtime_info],
-        :runtime => message[:runtime],
         :prod => message[:prod],
         :sha => message[:sha1]
       }
@@ -539,7 +538,6 @@ class AppManager
 
   def new_message
     data = {:droplet => app.id, :name => app.name, :uris => app.mapped_urls}
-    data[:runtime] = app.runtime
     data[:runtime_info] = Runtime.find(app.runtime).options
     data[:framework] = app.framework
     data[:prod] = app.prod
