@@ -3,7 +3,6 @@
 # mode by checking that flag. This code runs too early to know for sure if
 # we are starting in production mode.
 require 'vcap/common'
-require 'vcap/staging/plugin/common'
 require 'openssl'
 
 config_file = ENV['CLOUD_CONTROLLER_CONFIG']
@@ -62,12 +61,10 @@ required = { :external_uri => 'api.vcap.me',
              :rails_environment => 'development',
              :local_route  => '127.0.0.1',
              :allow_external_app_uris => false,
-             :staging => { :max_concurrent_stagers => 10,
-                           :max_staging_runtime => 60 },
+             :staging => { :max_staging_runtime => 60 },
              :external_port => 9022,
              :directories => { :droplets          => '/var/vcap/shared/droplets',
                                :resources         => '/var/vcap/shared/resources',
-                               :staging_cache     => '/var/vcap.local/staging',
                                :tmpdir            => '/var/vcap/data/cloud_controller/tmp'},
              :mbus => 'nats://localhost:4222/',
              :logging => { :level => 'debug' },
@@ -221,15 +218,6 @@ c = OpenSSL::Cipher::Cipher.new('blowfish')
 pw_len = AppConfig[:keys][:password].length
 if pw_len < c.key_len
   $stderr.puts "The supplied password is too short (#{pw_len} bytes), must be at least #{c.key_len} bytes. (Though only the first #{c.key_len} will be used.)"
-  exit 1
-end
-
-if AppConfig[:staging][:new_stager_email_regexp]
-  AppConfig[:staging][:new_stager_email_regexp] = Regexp.new(AppConfig[:staging][:new_stager_email_regexp])
-end
-
-if (AppConfig[:staging][:new_stager_percent] || AppConfig[:staging][:new_stager_email_regexp]) && !AppConfig[:redis]
-  $stderr.puts "You must supply a redis config to use the new stager"
   exit 1
 end
 

@@ -133,13 +133,7 @@ class AppsController < ApplicationController
     error_on_lock_mismatch(@app)
     @app.lock_version += 1
     manager = AppManager.new(@app)
-    if @app.needs_staging?
-      if user.uses_new_stager?
-        stage_app(@app)
-      else
-        manager.stage
-      end
-    end
+    stage_app(@app) if @app.needs_staging?
     manager.stop_all
     manager.started
     render :nothing => true, :status => 204
@@ -181,7 +175,7 @@ class AppsController < ApplicationController
   def files
     # XXX - Yuck. This will have to do until we update VMC with a real
     #       way to fetch staging logs.
-    if user.uses_new_stager? && (params[:path] == 'logs/staging.log')
+    if params[:path] == 'logs/staging.log'
       log = StagingTaskLog.fetch_fibered(@app.id)
       if log
         render :text => log.task_log
@@ -328,13 +322,7 @@ class AppsController < ApplicationController
     # Process any changes that require action on out part here.
     manager = AppManager.new(app)
 
-    if app.needs_staging?
-      if user.uses_new_stager?
-        stage_app(app)
-      else
-        manager.stage
-      end
-    end
+    stage_app(app) if app.needs_staging?
 
     if changed.include?('state')
       if app.stopped?
