@@ -206,6 +206,38 @@ describe ServicesController do
         response.status.should == 403
         AppConfig[:builtin_services].delete(:foo)
       end
+
+      it 'should ensure that builtin services have nil or core provider' do
+        AppConfig[:builtin_services][:foo1] = {:token => 'foobar1'}
+        AppConfig[:builtin_services][:foo2] = {:token => 'foobar2'}
+
+        svc_nil_provider = Service.create(
+          :label => 'foo1-1',
+          :url   => 'http://www.fooservice.com',
+          :token => ['foobar1'])
+        svc_nil_provider.should be_valid
+        svc_nil_provider.is_builtin?.should == true
+
+        svc_core_provider = Service.create(
+          :label => 'foo2-1',
+          :url   => 'http://www.foo2service.com',
+          :token => ['foobar2'],
+          :provider => "core")
+        svc_core_provider.should be_valid
+        svc_core_provider.is_builtin?.should == true
+
+        svc_my_provider = Service.create(
+          :label => 'foo1-1',
+          :url   => 'http://www.barservice.com',
+          :token => ['bar'],
+          :provider => "my")
+        svc_my_provider.should be_valid
+        svc_my_provider.is_builtin?.should == false
+
+        AppConfig[:builtin_services].delete(:foo1)
+        AppConfig[:builtin_services].delete(:foo2)
+      end
+
     end
 
     describe '#delete' do
