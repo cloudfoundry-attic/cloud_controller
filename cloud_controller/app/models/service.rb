@@ -167,7 +167,7 @@ class Service < ActiveRecord::Base
   end
 
   def is_builtin?
-    AppConfig.has_key?(:builtin_services) && AppConfig[:builtin_services].has_key?(self.name.to_sym)
+    AppConfig.has_key?(:builtin_services) && AppConfig[:builtin_services].has_key?(self.name.to_sym) && (self.provider == nil || self.provider == "core")
   end
 
   def verify_auth_token(token)
