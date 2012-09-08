@@ -512,6 +512,32 @@ describe ServicesController do
         response.status.should == 200
         Yajl::Parser.parse(response.body)['proxied_services'].size.should == 1
       end
+
+      it "should return all non-null and mandatory fields for the service" do
+        AppConfig[:builtin_services] = {
+          :foo => {:token => ["foobar"]}
+        }
+
+        svc = Service.new
+        svc.label = "brokered-1.0"
+        svc.url   = "http://localhost:56789"
+        svc.token = 'broker'
+        svc.provider ="fooprovider"
+        svc.save
+        svc.should be_valid
+
+        get :list_proxied_services
+        response.status.should == 200
+        services = Yajl::Parser.parse(response.body)['proxied_services']
+        services.size.should == 1
+
+        keys = %w(label url provider active supported_versions version_aliases)
+        services.each { |s|
+          keys.each { |k|
+            s.keys.include?(k).should == true
+          }
+        }
+      end
     end
 
     describe '#update_handle' do
