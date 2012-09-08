@@ -512,6 +512,41 @@ describe ServicesController do
         response.status.should == 200
         Yajl::Parser.parse(response.body)['proxied_services'].size.should == 1
       end
+
+      it "should return all non-null and mandatory fields for the service" do
+        AppConfig[:builtin_services] = {
+          :foo => {:token => ["foobar"]}
+        }
+        request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'broker'
+        post_msg :create do
+          VCAP::Services::Api::ServiceOfferingRequest.new(
+            :label => 'brokered-1.0',
+            :url   => 'http://localhost:56789',
+            :supported_versions => ["1.0" ],
+            :version_aliases => { "current" => "1.0" },
+            :provider => 'fooprovider',
+          )
+        end
+        response.status.should == 200
+
+        get :list_proxied_services
+        response.status.should == 200
+        services = Yajl::Parser.parse(response.body)['proxied_services']
+        services.size.should == 1
+
+        keys = %w(label url provider active supported_versions version_aliases)
+        keys.each { |k|
+          services[0].keys.include?(k).should == true
+        }
+
+        services[0]["label"].should == "brokered-1.0"
+        services[0]["provider"].should == "fooprovider"
+        services[0]["active"].should be_true
+        services[0]["url"].should == "http://localhost:56789"
+        services[0]["supported_versions"].size.should == 1
+        services[0]["supported_versions"][0].should == "1.0"
+        services[0]["version_aliases"]["current"].should == "1.0"
+      end
     end
 
     describe '#update_handle' do

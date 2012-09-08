@@ -71,14 +71,21 @@ class ServicesController < ApplicationController
   # Registers a new service offering with the CC
   #
   def create
-    req = VCAP::Services::Api::ServiceOfferingRequest.decode(request_body)
-    CloudController.logger.debug("Create service request: #{req.extract.inspect}")
+    CloudController.logger.debug("Create service request: #{request_body}")
+    req = nil
+    begin
+      req = VCAP::Services::Api::ServiceOfferingRequest.decode(request_body)
+    rescue => e
+      CloudController.logger.error("Failure decoding service offering request: #{e}")
+      raise e
+    end
 
     # Should we worry about a race here?
 
     success = nil
     svc = Service.find_by_label_and_provider(req.label, req.provider == "core" ? nil : req.provider)
     if svc
+      CloudController.logger.debug("Found svc = #{svc.inspect}")
       raise CloudError.new(CloudError::FORBIDDEN) unless svc.verify_auth_token(@service_auth_token)
       attrs = req.extract.dup
       attrs.delete(:label)
@@ -107,6 +114,7 @@ class ServicesController < ApplicationController
       # register with us to get a token.
       # or, it's a brokered service
       svc = Service.new(req.extract)
+      CloudController.logger.debug("Attempt creating service: #{svc.inspect}")
       if AppConfig[:service_proxy] and \
          AppConfig[:service_proxy][:token].index(@service_auth_token) and \
          !svc.is_builtin?
@@ -190,8 +198,7 @@ class ServicesController < ApplicationController
 
     result = Service.where(:token => @service_auth_token)
     result = result.select { |svc| !svc.is_builtin? }
-    result = result.map { |svc| {:label => svc.label, \
-                  :description => svc.description, :acls => svc.acls } }
+    result = result.map { |svc| svc.hash_to_service_offering }
 
     render :json =>  {:proxied_services => result}
   end
