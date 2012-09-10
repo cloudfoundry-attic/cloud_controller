@@ -12,12 +12,19 @@ EM.next_tick do
   NATS.subscribe("cloudcontrollers.hm.requests.#{AppConfig[:cc_partition]}", :queue => :cc) do |msg|
     begin
       payload = Yajl::Parser.parse(msg, :symbolize_keys => true)
-      CloudController::UTILITY_FIBER_POOL.spawn do
-        App.process_health_manager_message(payload)
-      end
     rescue => e
-      CloudController.logger.error("Exception processing health manager request: '#{msg}'")
+      CloudController.logger.error("Failed parsing HM request #{msg} : #{e}")
       CloudController.logger.error(e)
+      next
+    end
+
+    CloudController::UTILITY_FIBER_POOL.spawn do
+      begin
+        App.process_health_manager_message(payload)
+      rescue => e
+        CloudController.logger.error("Failed processing HM request #{msg}: #{e}")
+        CloudController.logger.error(e)
+      end
     end
   end
 
