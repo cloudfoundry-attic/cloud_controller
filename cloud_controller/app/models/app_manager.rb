@@ -1,18 +1,7 @@
 class AppManager
   attr_reader :app
 
-  DEFAULT_MAX_CONCURRENT_STAGERS = 10
-  DEFAULT_MAX_STAGING_RUNTIME    = 60
-
   class << self
-
-    def max_running
-      AppConfig[:staging][:max_concurrent_stagers] || DEFAULT_MAX_CONCURRENT_STAGERS
-    end
-
-    def max_runtime
-      AppConfig[:staging][:max_staging_runtime] || DEFAULT_MAX_STAGING_RUNTIME
-    end
 
     def pending
       @pending ||= []
@@ -21,143 +10,10 @@ class AppManager
     def running
       @running ||= {}
     end
-
-    def secure_staging_dir(user, dir)
-      CloudController.logger.debug("Securing directory '#{dir}'", :tags => [:staging])
-      system("chown -R #{user[:user]} #{dir}")
-      system("chgrp -R #{user[:group]} #{dir}")
-      system("chmod -R o-rwx #{dir}")
-      system("chmod -R g-rwx #{dir}")
-    end
-
-    def queue_staging_job(job)
-      pending << job
-      VCAP::Component.varz[:pending_stage_cmds] = pending.length
-      process_queue
-    end
-
-    def staging_job_expired(job)
-      CloudController.logger.warn("Killing long running staging process: #{job.inspect}", :tags => [:staging])
-      job.delete(:expire_timer)
-      # Forcefully take out long running stager
-      `kill -9 #{job[:pid]}`
-      complete_running(job)
-    end
-
-    def mark_running(job, pid)
-      job[:pid] = pid
-      job[:start] = Time.now
-      job[:expire_timer] = EM.add_timer(max_runtime) { AppManager.staging_job_expired(job) }
-      running[pid] = job
-
-      VCAP::Component.varz[:running_stage_cmds] = running.length
-    end
-
-    def complete_running(job)
-      EM.cancel_timer(job[:expire_timer]) if job[:expire_timer]
-      if job[:user]
-        CloudController.logger.debug("Checking in user #{job[:user]}", :tags => [:staging, :secure])
-        `sudo -u '##{job[:user][:uid]}' pkill -9 -U #{job[:user][:uid]} 2>&1`
-        SecureUserManager.instance.return_secure_user(job[:user])
-        job[:user] = nil
-      end
-      running.delete job[:pid]
-      VCAP::Component.varz[:running_stage_cmds] = running.length
-      process_queue
-    end
-
-    def process_queue
-      return if running.length >= max_running
-      return if pending.empty?
-      job = pending.shift
-      VCAP::Component.varz[:pending_stage_cmds] = pending.length
-
-      CloudController.logger.debug("Starting staging command: #{job[:cmd]} #{job[:config]}", :tags => [:staging])
-
-      if AppConfig[:staging][:secure]
-        job[:user] = user = SecureUserManager.instance.grab_secure_user
-        CloudController.logger.debug("Checked out user #{user.inspect}", :tags => [:staging, :secure])
-
-        job[:config]["secure_user"] = {
-          "uid" => Integer(user[:uid]),
-          "gid" => Integer(user[:gid]),
-        }
-        CloudController.logger.debug("Command config changed to '#{job[:config]}'", :tags => [:staging, :secure])
-
-        AppManager.secure_staging_dir(job[:user], job[:staging_dir])
-        AppManager.secure_staging_dir(job[:user], job[:exploded_dir])
-        AppManager.secure_staging_dir(job[:user], job[:work_dir])
-      end
-
-      plugin_config_file = File.join(job[:work_dir],"plugin_config")
-      StagingPlugin::Config.to_file(job[:config], plugin_config_file)
-      job[:cmd] = "#{job[:cmd]} #{plugin_config_file}"
-
-      Bundler.with_clean_env do
-
-        pid = EM.system(job[:cmd]) do |output, status|
-
-          if status.exitstatus != 0
-            CloudController.logger.debug("Staging command FAILED with #{status.exitstatus}: #{output}", :tags => [:staging])
-          else
-            CloudController.logger.debug('Staging command SUCCEEDED', :tags => [:staging])
-          end
-
-          Fiber.new do
-            # Finalize staging here if all is well.
-            manager = AppManager.new(job[:app])
-            begin
-              if manager.app_still_exists? # Will reload app
-                # Save the app even if staging failed to display the log to the user
-                manager.package_staged_app(job[:staging_dir])
-                job[:app].package_state = 'FAILED' if status.exitstatus != 0
-                manager.save_staged_app_state
-              end
-            rescue => e
-              CloudController.logger.warn("Exception after return from staging: #{e}", :tags => [:staging])
-              CloudController.logger.error(e, :tags => [:staging])
-            ensure
-              FileUtils.rm_rf(job[:staging_dir])
-              FileUtils.rm_rf(job[:exploded_dir])
-              FileUtils.rm_rf(job[:work_dir]) if job[:work_dir]
-            end
-          end.resume
-
-          # Clean up running reference
-          complete_running(job)
-
-        end
-        mark_running(job, pid)
-
-      end
-    end
-
   end
 
   def initialize(app)
     @app = app
-  end
-
-  def run_staging_command(script, exploded_dir, staging_dir, env_json)
-    work_dir = Dir.mktmpdir
-    plugin_config = {
-      "source_dir"   => exploded_dir,
-      "dest_dir"     => staging_dir,
-      "environment"  => env_json
-    }
-
-    job = {
-      :app => @app,
-      :cmd => "#{script}",
-      :config => plugin_config,
-      :staging_dir => staging_dir,
-      :exploded_dir => exploded_dir,
-      :work_dir => work_dir
-    }
-
-    CloudController.logger.debug("Queueing staging command #{job[:cmd]} #{job[:config]}", :tags => [:staging])
-
-    AppManager.queue_staging_job(job)
   end
 
   def health_manager_message_received(payload)
@@ -292,33 +148,6 @@ class AppManager
       errors = app.errors.full_messages
       CloudController.logger.warn("App #{app.id} was not valid after attempted staging: #{errors.join(',')}", :tags => [:staging])
     end
-  end
-
-  def stage
-    return if app.package_hash.blank? || app.staged?
-
-    CloudController.logger.debug "app: #{app.id} Staging starting"
-
-    app_source_dir = Dir.mktmpdir
-    app.explode_into(app_source_dir)
-    output_dir = Dir.mktmpdir
-    # Call the selected staging script without changing directories.
-    run_plugin_path = Rails.root.join('script', 'run_plugin.rb')
-    staging_script  = "#{CloudController.current_ruby} #{run_plugin_path} #{app.framework}"
-    # Perform staging command
-    run_staging_command(staging_script, app_source_dir, output_dir,
-      app.staging_task_properties)
-
-    once_app_is_staged do
-      CloudController.logger.debug "app: #{app.id} Staging complete"
-    end
-
-  rescue => e
-    CloudController.logger.error("Failed on exception! #{e}", :tags => [:staging])
-    CloudController.logger.error(e, :tags => [:staging])
-    app.package_state = 'FAILED'
-    save_staged_app_state
-    raise e # re-raise here to propogate to the API call.
   end
 
   # Returns an array of hashes containing 'index', 'state', 'since'(timestamp),
@@ -563,21 +392,5 @@ class AppManager
     f = Fiber.current
     EM.add_timer(secs) { f.resume }
     Fiber.yield
-  end
-
-  # Update the SHA1 stored for the app, repack the new bits, and mark the app as staged.
-  # repack does the right thing but needs a Fiber context, which will not be present here
-  def package_staged_app(staging_dir)
-    tmpdir = Dir.mktmpdir # we create the working directory ourselves so we can clean it up.
-    staged_file = AppPackage.repack_app_in(staging_dir, tmpdir, :tgz)
-
-    app.update_staged_package(staged_file)
-
-    app.package_state = 'STAGED'
-  rescue
-    app.package_state = 'FAILED'
-  ensure
-    FileUtils.rm_rf(tmpdir)
-    FileUtils.rm_rf(File.dirname(staged_file)) if staged_file
   end
 end
