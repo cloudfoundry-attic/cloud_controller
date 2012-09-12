@@ -106,7 +106,7 @@ describe 'Health Manager' do
       msg.should_not be_nil
       msg = parse_json msg
       msg['op'].should == 'START'
-      msg['droplet'].should == app.id
+      msg['droplet'].should == app.id.to_s
     end
 
     it 'should not start missing instances with empty staged_package_hash' do
@@ -126,7 +126,7 @@ describe 'Health Manager' do
     it 'should start crashed instances' do
       app = @helper.make_app_with_owner_and_instance(make_app_def('crasher'), make_user_def)
       crash_msg = {
-        'droplet' =>  app.id,
+        'droplet' =>  app.id.to_s,
         'cc_partition' => "default",
         'version' => 0,
         'instance' => 0,
@@ -139,7 +139,7 @@ describe 'Health Manager' do
       end
       msg.should_not be_nil
       msg = parse_json(msg)
-      msg['droplet'].should == app.id
+      msg['droplet'].should == app.id.to_s
       msg['op'].should == 'START'
       msg['version'].to_i.should == crash_msg['version']
     end

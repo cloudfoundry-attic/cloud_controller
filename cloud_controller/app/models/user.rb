@@ -89,13 +89,13 @@ class User < ActiveRecord::Base
     apps.each do |app|
       entries << app
       if app.started?
-        health_request << { :droplet => app.id, :version => app.generate_version }
+        health_request << { :droplet => app.id.to_s, :version => app.generate_version }
       end
     end
     health = ::App.health(health_request)
     entries.collect do |app|
       hash = app.as_json
-      hash[:runningInstances] = health[app.id]
+      hash[:runningInstances] = health[app.id.to_s]
       hash
     end
   end
