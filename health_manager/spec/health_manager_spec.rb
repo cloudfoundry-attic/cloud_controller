@@ -123,7 +123,7 @@ describe HealthManager do
     droplets = []
     indices.each do |index|
       droplets << {
-        'droplet' => @app.id,
+        'droplet' => @app.id.to_s,
         'cc_partition' => "default",
         'index' => index,
         'instance' => "badbeef-#{index}",
@@ -137,7 +137,7 @@ describe HealthManager do
 
   def make_crashed_message(options={})
     {
-      'droplet' => @app.id,
+      'droplet' => @app.id.to_s,
       'cc_partition' => "default",
       'version' => "#{@app.staged_package_hash}-#{@app.run_count}",
       'index' => 0,
@@ -149,7 +149,7 @@ describe HealthManager do
 
   def make_restart_message(options = {})
     m = {
-      'droplet' => @app.id,
+      'droplet' => @app.id.to_s,
       'op' => 'START',
       'last_updated' => @app.last_updated.to_i,
       'version' => "#{@app.staged_package_hash}-#{@app.run_count}",
@@ -174,14 +174,14 @@ describe HealthManager do
   it "should detect instances that are down and send a START request" do
     stats = { :frameworks => {}, :runtimes => {}, :down => 0 }
     should_publish_to_nats "cloudcontrollers.hm.requests.default", {
-      'droplet' => @app.id,
+      'droplet' => @app.id.to_s,
       'op' => 'START',
       'last_updated' => @app.last_updated.to_i,
       'version' => "#{@app.staged_package_hash}-#{@app.run_count}",
       'indices' => [0,1,2]
     }
 
-    @hm.analyze_app(@app.id, @droplet_entry, stats)
+    @hm.analyze_app(@app.id.to_s, @droplet_entry, stats)
     @hm.deque_a_batch_of_requests
 
     stats[:down].should == 3
@@ -199,14 +199,14 @@ describe HealthManager do
         3 => { :state => 'RUNNING', :timestamp => timestamp, :last_action => @app.last_updated, :instance => '3' }
       }}
     should_publish_to_nats "cloudcontrollers.hm.requests.default", {
-      'droplet' => @app.id,
+      'droplet' => @app.id.to_s,
       'op' => 'STOP',
       'last_updated' => @app.last_updated.to_i,
       'instances' => [ version_entry[:indices][3][:instance] ]
     }
     @droplet_entry[:versions][@droplet_entry[:live_version]] = version_entry
 
-    @hm.analyze_app(@app.id, @droplet_entry, stats)
+    @hm.analyze_app(@app.id.to_s, @droplet_entry, stats)
 
     stats[:running].should == 3
     stats[:frameworks]['sinatra'][:running_instances].should == 3
@@ -229,11 +229,11 @@ describe HealthManager do
     end
 
     def droplet
-      @hm.droplets[@app.id]
+      @hm.droplets[@app.id.to_s]
     end
 
     def activity_message
-      Zlib::Deflate.deflate([@app.id].to_json)
+      Zlib::Deflate.deflate([@app.id.to_s].to_json)
     end
 
     it "should update last_activity timestamp" do
@@ -245,14 +245,14 @@ describe HealthManager do
 
     it "should spindown app with no acitvity at all" do
       should_publish_to_nats('cloudcontrollers.hm.requests.default', {
-                               :droplet =>  @app.id,
+                               :droplet =>  @app.id.to_s,
                                :op => :SPINDOWN
                              })
 
       # make hm believe that 3 seconds have elapsed
       @hm.set_now( @hm.now + 3 )
 
-      @hm.analyze_app(@app.id, droplet, make_stats)
+      @hm.analyze_app(@app.id.to_s, droplet, make_stats)
     end
 
     it "should not spindown an app with activity" do
@@ -262,19 +262,19 @@ describe HealthManager do
         @hm.process_active_apps_message(activity_message)
       }
 
-      @hm.analyze_app(@app.id, droplet, make_stats)
+      @hm.analyze_app(@app.id.to_s, droplet, make_stats)
     end
 
     it "should not spindown inactive app with 'prod' flag set to true" do
       droplet[:prod] = true
       # make hm believe that 3 seconds have elapsed
       @hm.set_now( @hm.now + 3 )
-      @hm.analyze_app(@app.id, droplet, make_stats)
+      @hm.analyze_app(@app.id.to_s, droplet, make_stats)
     end
 
     it "should spindown an app with stale activity" do
       should_publish_to_nats('cloudcontrollers.hm.requests.default', {
-                               :droplet =>  @app.id,
+                               :droplet =>  @app.id.to_s,
                                :op => :SPINDOWN
                              })
       @hm.process_active_apps_message(activity_message)
@@ -282,7 +282,7 @@ describe HealthManager do
       # make hm believe that 3 seconds have elapsed
       @hm.set_now( @hm.now + 3 )
 
-      @hm.analyze_app(@app.id, droplet, make_stats)
+      @hm.analyze_app(@app.id.to_s, droplet, make_stats)
     end
   end
 
@@ -325,9 +325,9 @@ describe HealthManager do
       hb['droplets'][1]['cc_partition'] = 'bogus_partition'
 
       @hm.process_heartbeat_message(hb.to_json)
-      @droplet_entry = @hm.droplets[@app.id]
+      @droplet_entry = @hm.droplets[@app.id.to_s]
 
-      @hm.analyze_app(@app.id, @droplet_entry, make_stats)
+      @hm.analyze_app(@app.id.to_s, @droplet_entry, make_stats)
       @hm.deque_a_batch_of_requests
     end
 
@@ -340,8 +340,8 @@ describe HealthManager do
       hb['droplets'][1].delete('cc_partition').should == 'default'
 
       @hm.process_heartbeat_message(hb.to_json)
-      @droplet_entry = @hm.droplets[@app.id]
-      @hm.analyze_app(@app.id, @droplet_entry, make_stats)
+      @droplet_entry = @hm.droplets[@app.id.to_s]
+      @hm.analyze_app(@app.id.to_s, @droplet_entry, make_stats)
       @hm.deque_a_batch_of_requests
     end
   end
@@ -361,12 +361,12 @@ describe HealthManager do
     hb1['prod'] = true # augment heartbeat with dea prod status
     @hm.process_heartbeat_message(hb1.to_json)
 
-    @droplet_entry = @hm.droplets[@app.id]
+    @droplet_entry = @hm.droplets[@app.id.to_s]
 
     stoppee_instance = @droplet_entry[:versions].values.first[:indices][1]
 
     stop_message = {
-      'droplet' => @app.id,
+      'droplet' => @app.id.to_s,
       'op' => 'STOP',
       'last_updated' => stoppee_instance[:timestamp],
       'instances' => [stoppee_instance[:instance]]
@@ -374,7 +374,7 @@ describe HealthManager do
     should_publish_to_nats("cloudcontrollers.hm.requests.default", stop_message)
     should_publish_to_nats("cloudcontrollers.hm.requests.default", make_restart_message('indices'=>[1]))
 
-    @hm.analyze_app(@app.id, @droplet_entry, stats)
+    @hm.analyze_app(@app.id.to_s, @droplet_entry, stats)
     @hm.deque_a_batch_of_requests
   end
 
@@ -384,7 +384,7 @@ describe HealthManager do
     droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
     @hm.deque_a_batch_of_requests
     get_live_index(droplet_entry,0)[:state].should == 'DOWN'
-    @hm.restart_pending?(@app.id, 0).should be_false # first @flapping_death restarts are immediate.
+    @hm.restart_pending?(@app.id.to_s, 0).should be_false # first @flapping_death restarts are immediate.
   end
 
   def ensure_flapping_delayed_restart(delay)
@@ -395,20 +395,20 @@ describe HealthManager do
       droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
 
       get_live_index(droplet_entry,0)[:state].should == 'FLAPPING'
-      @hm.restart_pending?(@app.id, 0).should be_true
+      @hm.restart_pending?(@app.id.to_s, 0).should be_true
 
       # half a second before the delay elapses the restart is still pending
       EM.add_timer(delay - 0.5) do
-        @hm.restart_pending?(@app.id, 0).should be_true
+        @hm.restart_pending?(@app.id.to_s, 0).should be_true
         @hm.deque_a_batch_of_requests
-        @hm.restart_pending?(@app.id, 0).should be_true
+        @hm.restart_pending?(@app.id.to_s, 0).should be_true
       end
 
       # after delay elapses, the pending restart is initiated and is no longer pending
       EM.add_timer(delay + 0.5) do
-        @hm.restart_pending?(@app.id, 0).should be_true
+        @hm.restart_pending?(@app.id.to_s, 0).should be_true
         @hm.deque_a_batch_of_requests
-        @hm.restart_pending?(@app.id, 0).should be_false
+        @hm.restart_pending?(@app.id.to_s, 0).should be_false
         f.resume
       end
     end
@@ -419,7 +419,7 @@ describe HealthManager do
     droplet_entry = @hm.process_exited_message(make_crashed_message.to_json)
     get_live_index(droplet_entry,0)[:state].should == 'FLAPPING'
     get_live_index(droplet_entry,0)[:crashes].should > @giveup_crash_number
-    @hm.restart_pending?(@app.id, 0).should be_false
+    @hm.restart_pending?(@app.id.to_s, 0).should be_false
   end
 
   def in_em_with_fiber
@@ -473,7 +473,7 @@ describe HealthManager do
     apps.each do |app|
 
       should_publish_to_nats("cloudcontrollers.hm.requests.default", {
-                               'droplet' => app.id ,
+                               'droplet' => app.id.to_s ,
                                'op' => 'START',
                                'last_updated' => app.last_updated.to_i,
                                'version' => "#{app.staged_package_hash}-#{app.run_count}",
@@ -485,7 +485,7 @@ describe HealthManager do
 
     apps.each do |app|
       @hm.process_exited_message({
-                                   'droplet' => app.id,
+                                   'droplet' => app.id.to_s,
                                    'cc_partition' => "default",
                                    'version' => "#{app.staged_package_hash}-#{app.run_count}",
                                    'index' => 0,

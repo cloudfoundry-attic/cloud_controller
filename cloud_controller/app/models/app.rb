@@ -50,12 +50,12 @@ class App < ActiveRecord::Base
   validates_inclusion_of :package_state, :in => PackageStates
 
   def self.find_by_collaborator_and_id(user, app_id)
-    App.joins(:app_collaborations).where(:app_collaborations => {:user_id => user.id}, :apps => {:id => app_id}).first
+    App.joins(:app_collaborations).where(:app_collaborations => {:user_id => user.id}, :apps => {:id => app_id.to_i}).first
   end
 
   def self.process_health_manager_message(decoded_json)
     if decoded_json && app_id = decoded_json[:droplet]
-      if app = App.find_by_id(app_id)
+      if app = App.find_by_id(app_id.to_i)
         AppManager.new(app).health_manager_message_received(decoded_json)
       elsif decoded_json[:op] =~ /STOP/i
         # App no longer exists, so we might as well tell it to stop
@@ -72,7 +72,7 @@ class App < ActiveRecord::Base
     users.each {|u| emails_by_id[u.id.to_s] = u.email}
     apps = connection.select_all("select id, name, state, instances, owner_id from apps")
     apps.each do |row|
-      h = {:droplet_id => row['id'].to_i, :state => row['state'], :name => row['name']}
+      h = {:droplet_id => row['id'].to_s, :state => row['state'], :name => row['name']}
       h[:user] = emails_by_id[row['owner_id']]
       h[:instances] = row['instances'].to_i
       results << h
@@ -141,8 +141,8 @@ class App < ActiveRecord::Base
   def running_instances
     return 0 unless started?
     # If started, poll for correct running_instances through the HM
-    h = ::App.health([{ :droplet => self.id, :version => generate_version }])
-    h ? h[self.id] : 0
+    h = ::App.health([{ :droplet => self.id.to_s, :version => generate_version }])
+    h ? h[self.id.to_s] : 0
   end
 
   def resource_requirements

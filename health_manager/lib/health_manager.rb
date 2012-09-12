@@ -354,7 +354,7 @@ class HealthManager
 
       ensure_connected do
         # don't act if we were looking at a stale droplet
-        if update_droplet(App.find_by_id(app_id))
+        if update_droplet(App.find_by_id(app_id.to_i))
           if missing_indices.any? || extra_instances.any?
             @logger.info("Droplet information is stale for app id #{app_id}, not taking action.")
             @logger.info("(#{missing_indices.length} instances need to be started, #{extra_instances.length} instances need to be stopped.)")
@@ -492,14 +492,14 @@ class HealthManager
     message = parse_json(message)
     return unless partition_match?(message['cc_partition'])
     VCAP::Component.varz[:droplet_updated_msgs_received] += 1
-    ensure_connected { update_droplet App.find_by_id(message['droplet']) }
+    ensure_connected { update_droplet App.find_by_id(message['droplet'].to_i) }
   end
 
   def process_exited_message(message)
     exit_message = parse_json(message)
     return unless partition_match?(exit_message['cc_partition'])
     VCAP::Component.varz[:droplet_exited_msgs_received] += 1
-    droplet_id = exit_message['droplet']
+    droplet_id = exit_message['droplet'].to_s
     version = exit_message['version']
     index = exit_message['index']
     instance = exit_message['instance']
@@ -601,7 +601,7 @@ class HealthManager
     dea_prod = parsed_message['prod']
     parsed_message['droplets'].each do |heartbeat|
       next unless partition_match?(heartbeat['cc_partition'])
-      droplet_id = heartbeat['droplet']
+      droplet_id = heartbeat['droplet'].to_s
       instance = heartbeat['instance']
       droplet_entry = @droplets[droplet_id]
       if droplet_entry
@@ -657,7 +657,7 @@ class HealthManager
     droplets = message_json['droplets']
     exchange = message_json['exchange']
     droplets.each do |droplet|
-      droplet_id = droplet['droplet']
+      droplet_id = droplet['droplet'].to_s
 
       droplet_entry = @droplets[droplet_id]
       if droplet_entry
@@ -679,7 +679,7 @@ class HealthManager
   def process_status_message(message, reply)
     VCAP::Component.varz[:healthmanager_status_msgs_received] += 1
     message_json = parse_json(message)
-    droplet_id = message_json['droplet']
+    droplet_id = message_json['droplet'].to_s
     droplet_entry = @droplets[droplet_id]
 
     if droplet_entry
@@ -719,7 +719,7 @@ class HealthManager
       old_droplet_ids = Set.new(@droplets.keys)
 
       App.all.each do |droplet|
-        old_droplet_ids.delete(droplet.id)
+        old_droplet_ids.delete(droplet.id.to_s)
         update_droplet(droplet)
       end
 
@@ -787,7 +787,7 @@ class HealthManager
   def update_droplet(droplet)
     return true unless droplet
 
-    droplet_entry = @droplets[droplet.id] ||= create_droplet_entry
+    droplet_entry = @droplets[droplet.id.to_s] ||= create_droplet_entry
 
     entry_updated = droplet_entry[:last_updated] != droplet.last_updated
 
