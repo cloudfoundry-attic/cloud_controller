@@ -179,7 +179,7 @@ class AppManager
       # If HM detects older versions, let's clean up here versus suppressing
       # and leaving old versions in the system. HM will start new ones if needed.
       if payload[:last_updated] == app.last_updated
-        stop_msg = { :droplet => app.id, :instances => payload[:instances] }
+        stop_msg = { :droplet => app.id.to_s, :instances => payload[:instances] }
         NATS.publish('dea.stop', Yajl::Encoder.encode(stop_msg))
       end
     when /SPINDOWN/i
@@ -262,7 +262,7 @@ class AppManager
     once_app_is_staged do
       unless app.staging_failed?
         message = {
-          :droplet => app.id,
+          :droplet => app.id.to_s,
           :cc_partition => AppConfig[:cc_partition]
         }
         NATS.publish('droplet.updated', Yajl::Encoder.encode(message))
@@ -347,7 +347,7 @@ class AppManager
     indices = []
 
     message = {
-      :droplet => app.id,
+      :droplet => app.id.to_s,
       :version => app.generate_version,
       :state => :FLAPPING
     }
@@ -368,7 +368,7 @@ class AppManager
     end
 
     message = {
-      :droplet => app.id,
+      :droplet => app.id.to_s,
       :version => app.generate_version,
       :states => ['STARTING', 'RUNNING']
     }
@@ -407,7 +407,7 @@ class AppManager
 
   def find_crashes
     crashes = []
-    message = {:droplet => app.id, :state => :CRASHED}
+    message = {:droplet => app.id.to_s, :state => :CRASHED}
     crashed_indices_json = NATS.timed_request('healthmanager.status', message.to_json, :timeout => 2).first
     crashed_indices = Yajl::Parser.parse(crashed_indices_json, :symbolize_keys => true) rescue nil
     crashes = crashed_indices[:instances] if crashed_indices
@@ -416,7 +416,7 @@ class AppManager
 
   # TODO, this should be calling one generic find_instances
   def find_specific_instance(options)
-    message = { :droplet => app.id }
+    message = { :droplet => app.id.to_s }
     message.merge!(options)
     instance_json = NATS.timed_request('dea.find.droplet', message.to_json, :timeout => 2).first
     instance = Yajl::Parser.parse(instance_json, :symbolize_keys => true) rescue nil
@@ -429,7 +429,7 @@ class AppManager
     indices = {}
     return indices if (app.nil? || !app.started?)
 
-    message = { :droplet => app.id, :version => app.generate_version,
+    message = { :droplet => app.id.to_s, :version => app.generate_version,
                 :states => ['RUNNING'], :include_stats => true }
     opt = { :timeout => 2, :expected => app.instances }
     running_instances = NATS.timed_request('dea.find.droplet', message.to_json, opt)
@@ -510,12 +510,12 @@ class AppManager
   end
 
   def stop_instances(indices)
-    stop_msg = { :droplet => app.id, :version => app.generate_version, :indices => indices }
+    stop_msg = { :droplet => app.id.to_s, :version => app.generate_version, :indices => indices }
     NATS.publish('dea.stop', Yajl::Encoder.encode(stop_msg))
   end
 
   def stop_all
-    NATS.publish('dea.stop', Yajl::Encoder.encode(:droplet => app.id))
+    NATS.publish('dea.stop', Yajl::Encoder.encode(:droplet => app.id.to_s))
   end
 
   def get_file_url(instance, path=nil)
@@ -554,7 +554,7 @@ class AppManager
   end
 
   def new_message
-    data = {:droplet => app.id, :name => app.name, :uris => app.mapped_urls}
+    data = {:droplet => app.id.to_s, :name => app.name, :uris => app.mapped_urls}
     data[:runtime] = app.runtime
     data[:framework] = app.framework
     data[:prod] = app.prod
