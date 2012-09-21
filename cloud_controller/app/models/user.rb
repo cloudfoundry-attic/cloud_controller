@@ -95,7 +95,7 @@ class User < ActiveRecord::Base
     health = ::App.health(health_request)
     entries.collect do |app|
       hash = app.as_json
-      hash[:runningInstances] = health[app.id]
+      hash[:runningInstances] = health[app.id.to_s]
       hash
     end
   end
