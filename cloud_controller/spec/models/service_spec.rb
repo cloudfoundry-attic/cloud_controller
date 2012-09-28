@@ -189,6 +189,50 @@ describe Service do
     end
   end
 
+  describe "#visible_to_anonymous?" do
+    describe "without ACL" do
+      it "should pass" do
+        svc = Service.new(:acls => nil)
+        svc.should be_visible_to_anonymous
+      end
+    end
+
+    describe "with service ACL" do
+      it "should fail when users are specified" do
+        svc = Service.new(:acls => { "users" => ["a@b.com"] })
+        svc.should_not be_visible_to_anonymous
+      end
+
+      it "should fail when wildcards are specified" do
+        svc = Service.new(:acls => { "wildcards" => ["*@b.com"] })
+        svc.should_not be_visible_to_anonymous
+      end
+    end
+
+    describe "with plan ACL" do
+      let(:svc) do
+        Service.new(
+          :acls => {
+            "plans" => {
+              "plan_a" => { "users" => ["a@b.com"] },
+              "plan_b" => { "wildcards" => ["*@b.com"] },
+            },
+          },
+        )
+      end
+
+      it "should fail when all plans have an ACL" do
+        svc.plans = ["plan_a", "plan_b"]
+        svc.should_not be_visible_to_anonymous
+      end
+
+      it "should pass when one plan doesn't have an ACL" do
+        svc.plans = ["plan_a", "plan_b", "plan_c"]
+        svc.should be_visible_to_anonymous
+      end
+    end
+  end
+
   describe "#is_builtin?" do
     it "should correctly check against AppConfig" do
       AppConfig[:builtin_services].delete(:foo)

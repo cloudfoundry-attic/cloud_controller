@@ -1,26 +1,26 @@
 class DefaultController < ApplicationController
-
-  before_filter :require_user, :only => :service_info
-
   def info
     info = {
       :name => 'vcap',
       :build => 2222,
-      :support =>  AppConfig[:support_address],
-      :version =>  CloudController.version,
-      :description =>  AppConfig[:description],
-      :allow_debug =>  AppConfig[:allow_debug]
+      :support => AppConfig[:support_address],
+      :version => CloudController.version,
+      :description => AppConfig[:description],
+      :allow_debug => AppConfig[:allow_debug],
+      :frameworks => frameworks_info,
     }
+
     if uaa_enabled?
       info[:authorization_endpoint] = AppConfig[:uaa][:url]
     end
+
     # If there is a logged in user, give out additional information
     if user
-      info[:user]       = user.email
-      info[:limits]     = user.account_capacity
-      info[:usage]      = user.account_usage
-      info[:frameworks] = frameworks_info
+      info[:user] = user.email
+      info[:limits] = user.account_capacity
+      info[:usage] = user.account_usage
     end
+
     render :json => info
   end
 
@@ -29,7 +29,16 @@ class DefaultController < ApplicationController
   end
 
   def service_info
-    svcs = Service.active_services.select {|svc| svc.visible_to_user?(user)}
+    svcs = Service.active_services
+
+    if user
+      # Services that are visible to this user
+      svcs = svcs.select { |svc| svc.visible_to_user?(user) }
+    else
+      # Services that are visible to everybody
+      svcs = svcs.select { |svc| svc.visible_to_anonymous? }
+    end
+
     CloudController.logger.debug("Global service listing found #{svcs.length} services.")
 
     ret = {}

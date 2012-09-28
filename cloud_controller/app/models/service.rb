@@ -85,6 +85,24 @@ class Service < ActiveRecord::Base
     end
   end
 
+  def visible_to_anonymous?
+    if acls
+      if acls.has_key?("plans")
+        if (plans - acls["plans"].keys).empty?
+          # No plans without restriction
+          return false
+        end
+      end
+
+      if acls.has_key?("users") || acls.has_key?("wildcards")
+        # Service-wide restriction by user/wildcard
+        return false
+      end
+    end
+
+    return true
+  end
+
   # Return true if acls is empty or user matches user list or wildcards
   # false otherwise.
   def validate_by_acls?(user, acl)
