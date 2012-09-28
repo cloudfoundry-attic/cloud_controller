@@ -5,9 +5,62 @@ describe "A GET request to /info" do
     build_admin_and_user
   end
 
-  it "as an anonymous user" do
-    get cloud_info_url
-    response.status.should == 200
+  def response_status
+    response.status
+  end
+
+  def response_body
+    Yajl::Parser.parse(response.body)
+  end
+
+  describe "as an anonymous user" do
+    describe "requesting /info" do
+      it "should succeed" do
+        get cloud_info_url
+
+        response_status.should == 200
+        response_body["frameworks"].should_not be_empty
+      end
+    end
+
+    describe "requesting /info/services" do
+      before do
+        Service.create!(
+          :label => "foo-1.0",
+          :plans => ["free"],
+          :supported_versions => ["1.0"],
+          :url   => "http://foo.com",
+          :token => "foo")
+
+        Service.create!(
+          :label => "bar-1.0",
+          :plans => ["free"],
+          :supported_versions => ["1.0"],
+          :url   => "http://bar.com",
+          :token => "bar",
+          :acls  => { "users" => ["a@b.com"] })
+      end
+
+      it "should succeed" do
+        get cloud_service_info_url
+
+        response_status.should == 200
+        response_body.should_not be_empty
+
+        # Expect only service without ACL to be present
+        response_body["generic"].should have_key("foo")
+        response_body["generic"].should_not have_key("bar")
+      end
+    end
+
+    describe "requesting /info/runtimes" do
+      it "should succeed" do
+        get cloud_runtime_info_url
+
+        response_status.should == 200
+        response_body.should_not be_empty
+      end
+    end
   end
 
   shared_examples_for "any request" do

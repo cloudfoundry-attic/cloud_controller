@@ -69,19 +69,37 @@ class Service < ActiveRecord::Base
   # P_ACLs\S_ACLs | Empty       | HasACLs                    |
   #   Empty       | True        | S_ACL(user)                |
   #   HasACLs     | P_ACL(user) | S_ACL(user) && P_ACL(user) |
-  def visible_to_user?(user, plan=nil)
-    return false if !plans || !user.email
-    return true unless acls
+  def visible_to_user?(user = nil, plan = nil)
+    return false if !plans
+    return true if !acls
 
     if !plan
-      plans.each do |p|
-        return true if visible_to_user?(user, p)
+      if plans
+        plans.each do |p|
+          return true if visible_to_user?(user, p)
+        end
       end
+
       return false
     else
-      # for certain plan, user should match service acls and plan acls
       p_acls = acls["plans"] && acls["plans"][plan]
-      validate_by_acls?(user, acls) && validate_by_acls?(user, p_acls)
+
+      if user
+        # User should match service acls and plan acls
+        return validate_by_acls?(user, acls) && validate_by_acls?(user, p_acls)
+      else
+        if acls.has_key?("users") || acls.has_key?("wildcards")
+          # Service-wide restriction by user/wildcard
+          return false
+        end
+
+        if p_acls
+          # Plan specific restriction
+          return false
+        end
+
+        return true
+      end
     end
   end
 
