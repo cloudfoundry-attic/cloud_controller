@@ -189,6 +189,54 @@ describe Service do
     end
   end
 
+  describe "#visible_to_user? without user" do
+    def new_service(options)
+      Service.new({ :plans => ["plan_a", "plan_b"] }.merge(options))
+    end
+
+    describe "without ACL" do
+      it "should pass" do
+        svc = new_service(:acls => nil)
+        svc.should be_visible_to_user
+      end
+    end
+
+    describe "with service ACL" do
+      it "should fail when users are specified" do
+        svc = new_service(:acls => { "users" => ["a@b.com"] })
+        svc.should_not be_visible_to_user
+      end
+
+      it "should fail when wildcards are specified" do
+        svc = new_service(:acls => { "wildcards" => ["*@b.com"] })
+        svc.should_not be_visible_to_user
+      end
+    end
+
+    describe "with plan ACL" do
+      let(:svc) do
+        new_service(
+          :acls => {
+            "plans" => {
+              "plan_a" => { "users" => ["a@b.com"] },
+              "plan_b" => { "wildcards" => ["*@b.com"] },
+            },
+          },
+        )
+      end
+
+      it "should fail when all plans have an ACL" do
+        svc.plans = ["plan_a", "plan_b"]
+        svc.should_not be_visible_to_user
+      end
+
+      it "should pass when one plan doesn't have an ACL" do
+        svc.plans = ["plan_a", "plan_b", "plan_c"]
+        svc.should be_visible_to_user
+      end
+    end
+  end
+
   describe "#is_builtin?" do
     it "should correctly check against AppConfig" do
       AppConfig[:builtin_services].delete(:foo)
