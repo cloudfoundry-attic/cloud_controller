@@ -8,7 +8,7 @@ gem 'nats', :require => 'nats/client'
 # VCAP common components
 gem 'vcap_common', :require => ['vcap/common', 'vcap/component'], :git => 'https://github.com/cloudfoundry/vcap-common.git', :ref => 'fd6b6d91'
 gem 'vcap_logging', :require => ['vcap/logging'], :git => 'https://github.com/cloudfoundry/common.git', :ref => 'e36886a1'
-gem 'cf-uaa-client', '~> 1.0', :git => 'https://github.com/cloudfoundry/uaa.git', :ref => 'dad29c90'
+gem 'cf-uaa-client', '~> 1.2', :git => 'https://github.com/cloudfoundry/uaa.git', :ref => '87335b21'
 
 # For queuing staging tasks
 gem 'em-hiredis'
