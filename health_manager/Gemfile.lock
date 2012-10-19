@@ -15,11 +15,11 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/uaa.git
-  revision: dad29c9030f482c7a426c9c81b0e05d9715ccc11
-  ref: dad29c90
+  revision: 603bb76ce8e369546e62402248d28ab9e87ef886
+  ref: 603bb76ce8
   specs:
-    cf-uaa-client (1.1.1)
-      em-http-request
+    cf-uaa-client (1.2.4)
+      em-http-request (>= 1.0.0.beta.3)
       eventmachine
       highline
       launchy
@@ -54,7 +54,7 @@ GEM
       http_parser.rb (>= 0.5.1)
     em-socksify (0.1.0)
       eventmachine
-    highline (1.6.13)
+    highline (1.6.15)
     http_parser.rb (0.5.3)
     json_pure (1.7.3)
     launchy (2.1.0)
@@ -90,7 +90,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (>= 1.0.10)
-  cf-uaa-client (~> 1.0)!
+  cf-uaa-client (~> 1.2)!
   ci_reporter
   em-http-request (~> 1.0.0.beta.3)
   eventmachine!
