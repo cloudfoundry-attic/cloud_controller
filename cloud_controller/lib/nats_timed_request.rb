@@ -7,12 +7,17 @@ module NATS
       timeout  = opts[:timeout]  || 1
       f = Fiber.current
       results = []
-      sid = NATS.request(subject, data, :max => expected) do |msg|
-        results << msg
-        f.resume if results.length >= expected
+
+      # Subscribe when at least one message is expected to be received
+      if expected > 0
+        sid = NATS.request(subject, data, :max => expected) do |msg|
+          results << msg
+          f.resume if results.length >= expected
+        end
+        NATS.timeout(sid, timeout, :expected => expected) { f.resume }
+        Fiber.yield
       end
-      NATS.timeout(sid, timeout, :expected => expected) { f.resume }
-      Fiber.yield
+
       return results.slice(0, expected)
     end
   end
