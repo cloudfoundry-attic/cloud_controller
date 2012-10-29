@@ -44,6 +44,7 @@ class UaaToken
             @uaa_token_coder = CF::UAA::TokenCoder.new(AppConfig[:uaa][:resource_id],
                                                        AppConfig[:uaa][:token_secret],
                                                        @token_key[:value])
+            CloudController.logger.info("successfully fetched public key from the uaa")
           end
         rescue => e
           self.token_key_fetch_failure_count = token_key_fetch_failure_count - 1
@@ -55,7 +56,7 @@ class UaaToken
       token_information = nil
       begin
         token_information = @uaa_token_coder.decode(auth_token)
-        CloudController.logger.info("Token received from the UAA #{token_information.inspect}")
+        CloudController.logger.info("Decoded user token #{token_information.inspect}")
       rescue => e
         CloudController.logger.error("Invalid bearer token Message: #{e.message}")
       end
