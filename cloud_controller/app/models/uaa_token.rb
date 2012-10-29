@@ -37,7 +37,7 @@ class UaaToken
       if token_key_fetch_failure_count > 0 && !@token_key
         begin
           CF::UAA::Misc.async=true
-          @token_key ||= CF::UAA::Misc.validation_key(AppConfig[:uaa][:url], AppConfig[:uaa][:resource_id], AppConfig[:uaa][:client_secret])
+          @token_key ||= CF::UAA::Misc.validation_key(AppConfig[:uaa][:url])
 
           if @token_key[:alg] == "SHA256withRSA"
             CloudController.logger.debug("token key fetched from the uaa #{@token_key.inspect}")
