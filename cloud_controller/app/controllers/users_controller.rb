@@ -12,8 +12,10 @@ class UsersController < ApplicationController
       begin
         user_account = UaaToken.user_account_instance
         retry_on_error = (retry_on_error == true ? false : true)
-        user = user_account.create(body_params[:email], body_params[:password], body_params[:email])
-        CloudController.logger.info("User with email #{body_params[:email]} and id #{user[:id]} created in the UAA") unless user == nil
+        email = body_params[:email]
+        password = body_params[:password]
+        user = user_account.add({userName: email, password: password, name: {givenName: email, familyName: email}})
+        CloudController.logger.info("User with email #{email} and id #{user[:id]} created in the UAA") unless user == nil
       rescue CF::UAA::InvalidToken => ite
         # Try again. The UAA may have restarted and may have lost it's token cache
         CloudController.logger.debug("Appears to be an invalid token, retrying - message #{ite.message} trace #{ite.backtrace[0..10]}")

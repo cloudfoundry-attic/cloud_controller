@@ -63,18 +63,13 @@ class UaaToken
       token_information[:email] if token_information
     end
 
-    def expired?(access_token)
-      expiry = CF::UAA::TokenCoder.decode(access_token.split()[1], AppConfig[:uaa][:token_secret])[:expires_at]
-      expiry.is_a?(Integer) && expiry <= Time.now.to_i
-    end
-
     def expire_access_token
       @access_token = nil
       @user_account = nil
     end
 
     def access_token
-      if @access_token.nil? || expired?(@access_token)
+      if @access_token.nil?
         #Get a new one
         @token_issuer.async = true
         @token_issuer.logger = CloudController.logger
