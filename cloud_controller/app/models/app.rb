@@ -554,6 +554,10 @@ class App < ActiveRecord::Base
     end
   end
 
+  def update_staged_runtime_version
+    self.staged_runtime_version = Runtime.find(self.runtime).version
+  end
+
   private
 
   # TODO - Remove this when the VMC client has been updated to match our new strings.

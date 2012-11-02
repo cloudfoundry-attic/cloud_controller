@@ -243,6 +243,7 @@ class AppsController < ApplicationController
       app.update_staged_package(ul_hdl.upload_path)
       app.package_state = 'STAGED'
       app.update_run_count()
+      app.update_staged_runtime_version
     end
 
   rescue => e

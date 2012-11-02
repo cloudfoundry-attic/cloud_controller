@@ -108,6 +108,18 @@ describe App do
     end
   end
 
+  describe '#update_staged_runtime_version' do
+    before :each do
+      @app = App.new
+    end
+
+    it 'should update the staged runtime version' do
+      @app.runtime = "ruby18"
+      @app.update_staged_runtime_version
+      @app.staged_runtime_version.should == '1.8.7'
+    end
+  end
+
   def create_user(email, pw)
     u = User.new(:email => email)
     u.set_and_encrypt_password(pw)

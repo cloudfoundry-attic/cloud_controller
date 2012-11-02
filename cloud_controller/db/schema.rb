@@ -27,6 +27,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.string   "name"
     t.string   "framework"
     t.string   "runtime"
+    t.string   "staged_runtime_version"
     t.integer  "memory",              :default => 256
     t.integer  "instances",           :default => 0
     t.string   "state",               :default => "STOPPED"
