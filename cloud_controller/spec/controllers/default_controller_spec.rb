@@ -103,7 +103,7 @@ describe DefaultController do
         get :info
         response.status.should == 200
         res = Yajl::Parser.parse(response.body)
-        res["frameworks"]["spring"].should ==  {"name"=>"spring", "runtimes"=>[{"name"=>"java", "version"=>"1.6", "description"=>"Java 6"}],
+        res["frameworks"]["spring"].should ==  {"name"=>"spring", "runtimes"=>[{"name"=>"java", "version"=>"1.6", "description"=>"Java 6", "status" => {"name" => "Current"}, "series" => "java", "category" => "java"}],
           "detection"=>[{"*.war"=>true}]}
       end
 
@@ -119,7 +119,8 @@ describe DefaultController do
         get :runtime_info
         response.status.should == 200
         res = Yajl::Parser.parse(response.body)
-        res["java"].should == {"description"=>"Java 6","version"=>"1.6","debug_modes"=>nil}
+        res["java"].should == {"description"=>"Java 6","version"=>"1.6","debug_modes"=>nil,
+          "status" => {"name" => "Current"}, "series" => "java", "category" => "java"}
       end
     end
   end

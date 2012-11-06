@@ -29,13 +29,16 @@ class Runtime
     end
   end
 
-  attr_reader :name, :version, :description, :debug_modes, :options
+  attr_reader :name, :version, :description, :debug_modes, :status, :series, :category, :options
 
   def initialize(name, options={})
     @name = name
     @version = options["version"]
     @description = options["description"]
     @debug_modes = options["debug_modes"]
+    @status = options["status"]
+    @series = options["series"]
+    @category = options["category"]
     @options = options
     @options["name"] = name
   end

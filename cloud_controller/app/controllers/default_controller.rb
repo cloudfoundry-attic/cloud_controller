@@ -99,7 +99,10 @@ class DefaultController < ApplicationController
             runtimes <<  {
               :name => runtime_name,
               :version => runtime_info.version,
-              :description => runtime_info.description}
+              :description => runtime_info.description,
+              :status => runtime_info.status,
+              :series => runtime_info.series,
+              :category => runtime_info.category }
           else
             CloudController.logger.warn("Manifest for #{framework.name} lists a runtime not present in " +
               "runtimes.yml: #{runtime_name}.  Runtime will be skipped.")
@@ -122,7 +125,10 @@ class DefaultController < ApplicationController
       runtime_info[runtime.name] = {
         :version => runtime.version,
         :description => runtime.description,
-        :debug_modes=> runtime.debug_modes }
+        :debug_modes=> runtime.debug_modes,
+        :status => runtime.status,
+        :series => runtime.series,
+        :category => runtime.category }
     end
     runtime_info
   end

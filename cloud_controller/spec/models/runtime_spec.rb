@@ -4,11 +4,14 @@ require 'spec_helper'
 describe "Runtime" do
 
   it "#all returns correct runtimes" do
-    Runtime.all.find {|x| x.name == 'java'}.options.should == {'name'=>'java','description'=>"Java 6",'version'=>"1.6",'executable'=>'java'}
+    Runtime.all.find {|x| x.name == 'java'}.options.should == {'name'=>'java','description'=>"Java 6",
+      'version'=>"1.6",'executable'=>'java', "status"=>{"name"=>"Current"}, "series"=>"java",
+      "category"=>"java"}
   end
 
   it '#find returns correct runtime' do
-    Runtime.find('java').options.should == {'name'=> "java", 'description'=>"Java 6",'version'=>"1.6", 'executable'=>'java'}
+    Runtime.find('java').options.should == {'name'=> "java", 'description'=>"Java 6",'version'=>"1.6",
+      "status"=>{"name"=>"Current"}, "series"=>"java", "category"=>"java", 'executable'=>'java'}
   end
 
   it '#find returns nil if runtime not found' do
