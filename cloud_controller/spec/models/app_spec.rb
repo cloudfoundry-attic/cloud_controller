@@ -37,6 +37,17 @@ describe App do
     @app.should_not be_valid
   end
 
+  it "does not require valid runtime or framework if runtime removed" do
+    @user_a = create_user('a@foo.com', 'a')
+    @app = App.create(
+        :name      => 'foobar',
+        :owner     => @user_a,
+        :runtime   => 'foo',
+        :framework => 'bar')
+    @app.runtime_removed = true
+    @app.should be_valid
+  end
+
   describe "#collaborators" do
     before :each do
       @user_a = create_user('a@foo.com', 'a')
