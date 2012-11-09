@@ -416,6 +416,9 @@ class AppsController < ApplicationController
       end
       app.metadata[:command] = body_params[:staging][:command] if body_params[:staging][:command]
     end
+    # Reset removed flag in case app is being updated with new runtime
+    # or to ensure validation fails if not
+    app.runtime_removed = false
     unless app.framework
       CloudController.logger.error "app: #{app.id} No app framework indicated"
       raise CloudError.new(CloudError::APP_INVALID_FRAMEWORK, 'NONE')

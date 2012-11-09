@@ -20,10 +20,18 @@ class AppManager
     CloudController.logger.debug("[HealthManager] Received #{payload[:op]} request for app #{app.id} - #{app.name}")
 
     indices = payload[:indices]
-    message = new_message
 
     case payload[:op]
     when /START/i
+      runtime = Runtime.find(app.runtime)
+      unless runtime
+        CloudController.logger.info("[HealthManager] Runtime #{app.runtime} has been removed.  Marking as stopped.")
+        app.state = "STOPPED"
+        app.runtime_removed = true
+        app.save!
+        return
+      end
+      message = new_message
       # Check if App is started.
       unless app.started?
         CloudController.logger.debug("[HealthManager] App no longer running, ignoring")

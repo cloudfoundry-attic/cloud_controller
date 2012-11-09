@@ -4,13 +4,15 @@ require 'openssl'
 
 class FrameworkValidator < ActiveModel::Validator
   def validate(record)
+    unless Runtime.find(record.runtime)
+      if not record.runtime_removed
+        record.errors[:runtime] << "The runtime #{record.runtime} is not valid"
+      end
+      return
+    end
     framework = Framework.find(record.framework)
     unless framework
       record.errors[:framework] << "The framework #{record.framework} is not valid"
-      return
-    end
-    unless Runtime.find(record.runtime)
-      record.errors[:runtime] << "The runtime #{record.runtime} is not valid"
       return
     end
     unless framework.supports_runtime? record.runtime

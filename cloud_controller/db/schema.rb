@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120706172319) do
+ActiveRecord::Schema.define(:version => 20121109172248) do
 
   create_table "app_collaborations", :force => true do |t|
     t.integer  "app_id"
@@ -27,22 +27,24 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.string   "name"
     t.string   "framework"
     t.string   "runtime"
-    t.integer  "memory",              :default => 256
-    t.integer  "instances",           :default => 0
-    t.string   "state",               :default => "STOPPED"
-    t.string   "package_state",       :default => "PENDING"
+    t.integer  "memory",                 :default => 256
+    t.integer  "instances",              :default => 0
+    t.string   "state",                  :default => "STOPPED"
+    t.string   "package_state",          :default => "PENDING"
     t.string   "package_hash"
     t.text     "environment_json"
     t.text     "metadata"
-    t.boolean  "external_secret",     :default => false
+    t.boolean  "external_secret",        :default => false
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "staged_package_hash"
-    t.integer  "file_descriptors",    :default => 256
-    t.integer  "disk_quota",          :default => 2048
-    t.integer  "lock_version",        :default => 0
-    t.integer  "run_count",           :default => 0,         :null => false
-    t.boolean  "prod",                :default => false
+    t.integer  "file_descriptors",       :default => 256
+    t.integer  "disk_quota",             :default => 2048
+    t.integer  "lock_version",           :default => 0
+    t.integer  "run_count",              :default => 0,         :null => false
+    t.boolean  "prod",                   :default => false
+    t.string   "staged_runtime_version"
+    t.boolean  "runtime_removed",        :default => false
   end
 
   add_index "apps", ["framework"], :name => "index_apps_on_framework"
@@ -125,7 +127,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.text     "plan_options"
     t.text     "binding_options"
     t.text     "acls"
-    t.boolean  "active",          :default => true
+    t.boolean  "active",             :default => true
     t.datetime "created_at"
     t.datetime "updated_at"
     t.integer  "timeout"
