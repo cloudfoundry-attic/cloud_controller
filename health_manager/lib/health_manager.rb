@@ -626,7 +626,7 @@ class HealthManager
             :crash_timestamp => heartbeat['state_timestamp']
           }
         end
-      else
+      elsif RUNNING_STATES.include?(heartbeat['state'])
         instance_uptime = now - heartbeat['state_timestamp']
         health_manager_uptime = now - @started
         threshold = @database_scan * 2
