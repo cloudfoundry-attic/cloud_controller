@@ -15,6 +15,8 @@ if config_file
       else
         AppConfig = nil
       end
+    else
+      AppConfig = nil
     end
   rescue => ex
     $stderr.puts %[FATAL: Exception encountered while loading config file: #{ex}\n#{ex.backtrace.join("\n")}]
