@@ -173,18 +173,6 @@ class AppsController < ApplicationController
 
   # GET /apps/:name/instances/:instance_id/files/:path'
   def files
-    # XXX - Yuck. This will have to do until we update VMC with a real
-    #       way to fetch staging logs.
-    if params[:path] == 'logs/staging.log'
-      log = StagingTaskLog.fetch_fibered(@app.id)
-      if log
-        render :text => log.task_log
-      else
-        render :nothing => true, :status => 404
-      end
-      return
-    end
-
     # will Fiber.yield
     url, auth = AppManager.new(@app).get_file_url(params[:instance_id], params[:path])
     raise CloudError.new(CloudError::APP_FILE_ERROR, params[:path] || '/') unless url
