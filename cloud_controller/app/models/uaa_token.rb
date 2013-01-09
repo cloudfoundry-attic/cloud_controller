@@ -55,6 +55,11 @@ class UaaToken
 
       token_information = nil
       begin
+        if (hdr = /^bearer\s+([^.]+)/i.match(auth_token)) &&
+            (hdr = CF::UAA::TokenCoder.base64url_decode(hdr[1])) &&
+            CF::UAA::Util.json_parse(hdr)[:alg] == "none"
+          raise CF::UAA::DecodeError, "Token signature algorithm not accepted"
+        end
         token_information = @uaa_token_coder.decode(auth_token)
         CloudController.logger.info("Decoded user token #{token_information.inspect}")
       rescue => e
