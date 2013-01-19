@@ -59,7 +59,7 @@ class BulkController < ApplicationController
 
   def hashify_app(app)
     h = {}
-    [:id, :instances, :state, :framework, :runtime, :memory, :package_state, :updated_at
+    [:id, :name, :instances, :state, :framework, :runtime, :memory, :package_state, :updated_at
     ].each {|field| h[field] = app.send(field) }
 
     h[:version] = app.generate_version
