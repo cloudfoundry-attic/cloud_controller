@@ -223,7 +223,7 @@ class AppPackage
         pool.add_directory(working_dir)
         @resource_descriptors.each do |descriptor|
           create_dir_skeleton(working_dir, descriptor[:fn])
-          path = resolve_path(working_dir, descriptor[:fn])
+          path = File.join(working_dir, descriptor[:fn])
           pool.copy(descriptor, path)
         end
       end
