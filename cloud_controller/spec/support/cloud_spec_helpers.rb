@@ -1,4 +1,3 @@
-require 'mocha'
 
 module CloudSpecHelpers
   # Define test scenarios for https enforcement code

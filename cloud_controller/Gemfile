@@ -43,7 +43,7 @@ gem 'rest-client', '~> 1.6.7'
 gem 'rspec-rails', "2.12.2"
 group :test do
   gem 'rcov'
-  gem 'mocha'
+  gem 'mocha', :require => nil
   gem 'ci_reporter'
   gem 'sinatra'  # For service gateway shims
   gem 'delorean'

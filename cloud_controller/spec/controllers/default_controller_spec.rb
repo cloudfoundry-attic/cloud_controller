@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-require 'mocha'
 require 'thin'
 require 'uri'
 require 'json'

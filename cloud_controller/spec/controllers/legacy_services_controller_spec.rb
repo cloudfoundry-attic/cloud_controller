@@ -1,7 +1,6 @@
 require 'spec_helper'
 require 'support/service_controller_helper'
 
-require 'mocha'
 require 'thin'
 require 'uri'
 require 'json'
