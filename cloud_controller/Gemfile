@@ -40,9 +40,8 @@ gem 'uuidtools', '~> 2.1.2'
 gem 'rest-client', '~> 1.6.7'
 
 # rspec-rails is outside the 'test' group in order to consistently provide Rake tasks.
-gem 'rspec-rails', '>= 2.4.1'
+gem 'rspec-rails', "2.12.2"
 group :test do
-  gem 'rspec', '>= 2.4.0', :require => nil
   gem 'rcov'
   gem 'mocha'
   gem 'ci_reporter'
