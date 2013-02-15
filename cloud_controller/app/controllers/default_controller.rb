@@ -11,7 +11,8 @@ class DefaultController < ApplicationController
     }
 
     if uaa_enabled?
-      info[:authorization_endpoint] = AppConfig[:uaa][:url]
+      info[:authorization_endpoint] = (AppConfig[:login] && AppConfig[:login][:url]) ? AppConfig[:login][:url] : AppConfig[:uaa][:url]
+      info[:token_endpoint] = AppConfig[:uaa][:url]
     end
 
     # If there is a logged in user, give out additional information
