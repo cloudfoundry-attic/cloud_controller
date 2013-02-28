@@ -1,4 +1,21 @@
 GIT
+  remote: /home/nicholask/cf/vcap-common
+  revision: 06812223684d7b8385e828841be9737a98a4bdee
+  ref: 068122236
+  specs:
+    vcap_common (2.0.10)
+      em-http-request (~> 1.0.0.beta3, < 1.0.0.beta4)
+      eventmachine
+      httpclient
+      membrane (~> 0.0.2)
+      mime-types
+      multipart-post
+      nats (~> 0.4.24)
+      posix-spawn (~> 0.3.6)
+      thin
+      yajl-ruby
+
+GIT
   remote: https://github.com/cloudfoundry/common.git
   revision: e36886a189b82f880a5aa3e9169712d5d9048a88
   ref: e36886a1
@@ -34,23 +51,6 @@ GIT
       launchy
       rest-client
       yajl-ruby
-
-GIT
-  remote: https://github.com/cloudfoundry/vcap-common.git
-  revision: fd6b6d91b19c551cf5091c8469595df923dd2612
-  ref: fd6b6d91
-  specs:
-    vcap_common (2.0.7)
-      em-http-request (~> 1.0.0.beta3)
-      eventmachine
-      httpclient
-      membrane (~> 0.0.2)
-      mime-types
-      multipart-post
-      nats (~> 0.4.24)
-      posix-spawn (~> 0.3.6)
-      thin
-      yajl-ruby (~> 0.8.3)
 
 GEM
   remote: http://rubygems.org/
@@ -110,7 +110,7 @@ GEM
     highline (1.6.15)
     hiredis (0.4.5)
     http_parser.rb (0.5.1)
-    httpclient (2.2.7)
+    httpclient (2.3.3)
     i18n (0.5.0)
     json (1.7.6)
     json_pure (1.7.3)
@@ -125,7 +125,7 @@ GEM
     mime-types (1.19)
     mocha (0.13.2)
       metaclass (~> 0.0.1)
-    multipart-post (1.1.5)
+    multipart-post (1.2.0)
     nats (0.4.24)
       daemons (>= 1.1.5)
       eventmachine (>= 0.12.10)
