@@ -37,10 +37,10 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/vcap-common.git
-  revision: fd6b6d91b19c551cf5091c8469595df923dd2612
-  ref: fd6b6d91
+  revision: 06812223684d7b8385e828841be9737a98a4bdee
+  ref: 068122236
   specs:
-    vcap_common (2.0.7)
+    vcap_common (2.0.10)
       em-http-request (~> 1.0.0.beta3)
       eventmachine
       httpclient

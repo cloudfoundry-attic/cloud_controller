@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120706172319) do
+ActiveRecord::Schema.define(:version => 20130213054423) do
 
   create_table "app_collaborations", :force => true do |t|
     t.integer  "app_id"
@@ -125,7 +125,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.text     "plan_options"
     t.text     "binding_options"
     t.text     "acls"
-    t.boolean  "active",          :default => true
+    t.boolean  "active",             :default => true
     t.datetime "created_at"
     t.datetime "updated_at"
     t.integer  "timeout"
@@ -134,6 +134,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.text     "supported_versions"
     t.text     "version_aliases"
     t.string   "default_plan"
+    t.string   "plan_descriptions"
   end
 
   add_index "services", ["name", "version", "provider"], :name => "index_services_on_name_and_version_and_provider", :unique => true
