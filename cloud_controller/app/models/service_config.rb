@@ -204,6 +204,7 @@ class ServiceConfig < ActiveRecord::Base
   # Returned for calls from legacy clients
   def as_legacy
     { :name       => self.alias,
+      :service_id => self.name,
       :type       => self.service.synthesize_service_type,
       :vendor     => self.service.name,
       :provider   => self.service.provider || "core",
