@@ -294,6 +294,7 @@ class AppsController < ApplicationController
     update_app_env(app)
     update_app_staging(app)
     delta_instances = update_app_instances(app)
+    update_app_buildpack(app)
 
     changed = app.changed
     CloudController.logger.debug "app: #{app.id} Updating #{changed.inspect}"
@@ -377,6 +378,11 @@ class AppsController < ApplicationController
     current_instances = app.instances
     app.instances = updated_instances
     updated_instances - current_instances
+  end
+
+  def update_app_buildpack(app)
+    return 0 unless body_params && body_params[:buildpack]
+    app.buildpack = body_params[:buildpack]
   end
 
   def error_on_lock_mismatch(app)
