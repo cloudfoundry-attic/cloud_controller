@@ -1,6 +1,12 @@
 require 'spec_helper'
 
 describe "Creating a new App" do
+  let(:data) do
+    {
+      'name' => random_name,
+      'staging' => { 'model' => 'sinatra', 'stack' => 'ruby18' },
+    }
+  end
 
   shared_examples_for "any request to create a new app" do
     before do
@@ -8,7 +14,6 @@ describe "Creating a new App" do
     end
 
     it "is successful when given a unique name" do
-      data = { 'name' => random_name, 'staging' => {'model' => 'sinatra', 'stack' => 'ruby18' }}
       lambda do
         post app_create_path, nil, headers_for(@user.email, nil, data)
         response.should redirect_to(app_get_url(data['name']))
@@ -38,5 +43,39 @@ describe "Creating a new App" do
     it_should_behave_like "any request to create a new app"
   end
 
+  describe "buildpack" do
+    before do
+      build_admin_and_user
+    end
 
+    context "when app has a valid buildpack url" do
+      let(:data) do
+        {
+          'name' => random_name,
+          'staging' => { 'model' => 'sinatra', 'stack' => 'ruby18' },
+          'buildpack' => 'git://example.com/foo.git',
+        }
+      end
+
+      it do
+        lambda do
+          post app_create_path, nil, headers_for(@user.email, nil, data)
+        end.should change(App, :count).by(1)
+      end
+    end
+
+    context "when app has a invalid buildpack url" do
+      let(:data) do
+        {
+          'name' => random_name,
+          'staging' => { 'model' => 'sinatra', 'stack' => 'ruby18' },
+          'buildpack' => 'git@github.com:foo/bar.git',
+        }
+      end
+
+      it do
+        post(app_create_path, nil, headers_for(@user.email, nil, data)).should eq 400
+      end
+    end
+  end
 end

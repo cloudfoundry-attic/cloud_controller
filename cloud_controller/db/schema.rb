@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120706172319) do
+ActiveRecord::Schema.define(:version => 20130309161350) do
 
   create_table "app_collaborations", :force => true do |t|
     t.integer  "app_id"
@@ -43,6 +43,7 @@ ActiveRecord::Schema.define(:version => 20120706172319) do
     t.integer  "lock_version",        :default => 0
     t.integer  "run_count",           :default => 0,         :null => false
     t.boolean  "prod",                :default => false
+    t.string   "buildpack"
   end
 
   add_index "apps", ["framework"], :name => "index_apps_on_framework"

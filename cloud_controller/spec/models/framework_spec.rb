@@ -3,7 +3,7 @@ require 'spec_helper'
 describe "Framework" do
 
   it "#all returns correct frameworks" do
-    Framework.all.length.should == 5
+    Framework.all.length.should == 6
     Framework.all.find {|x| x.name == "spring"}.options.should ==  {"name"=>"spring","runtimes"=>
       [{"java"=>{"default"=>true}}], "detection"=>[{"*.war"=>true}]}
   end

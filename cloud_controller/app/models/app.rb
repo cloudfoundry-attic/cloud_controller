@@ -28,6 +28,7 @@ class App < ActiveRecord::Base
   has_many :routes, :dependent => :destroy
 
   before_validation :normalize_legacy_staging_strings!
+  before_validation :set_default_framework_and_runtime
 
   serialize :metadata, Hash
 
@@ -48,6 +49,9 @@ class App < ActiveRecord::Base
   validates_with FrameworkValidator
   validates_inclusion_of :state, :in => AppStates
   validates_inclusion_of :package_state, :in => PackageStates
+
+  # note that this will not match private git URLs, i.e. git@github.com:foo/bar.git
+  validates_format_of :buildpack, :with => URI::regexp(%w(http https git)), :allow_nil => true
 
   def self.find_by_collaborator_and_id(user, app_id)
     App.joins(:app_collaborations).where(:app_collaborations => {:user_id => user.id}, :apps => {:id => app_id}).first
@@ -130,7 +134,9 @@ class App < ActiveRecord::Base
       "runtime_info"   => Runtime.find(runtime).options,
       "resources"      => resource_requirements,
       "environment"    => environment,
-      "meta" => metadata }
+      "meta"           => metadata,
+      "buildpack"      => buildpack,
+    }
   end
 
   # Returns an array of the URLs that point to this application
@@ -591,6 +597,15 @@ class App < ActiveRecord::Base
   def add_owner_as_collaborator
     ac = AppCollaboration.new(:user_id => self.owner_id, :app_id => self.id)
     ac.save!
+  end
+
+  def set_default_framework_and_runtime
+    # same behavior with CCng
+    # https://github.com/cloudfoundry/cloud_controller_ng/blob/f9802aec357ce3c4736cb6962a8f053dabc0f5b4/lib/cloud_controller/models/app.rb#L61
+    if Framework.find("buildpack")
+      self.framework ||= "buildpack"
+      self.runtime ||= "ruby19" if Runtime.find("ruby19")
+    end
   end
 end
 

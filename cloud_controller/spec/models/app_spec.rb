@@ -37,6 +37,16 @@ describe App do
     @app.should_not be_valid
   end
 
+  it "should set default framework and runtime" do
+    @user_a = create_user('a@foo.com', 'a')
+    @app = App.create(
+        :name      => 'foobar',
+        :owner     => @user_a,
+    )
+    @app.framework.should eq "buildpack"
+    @app.runtime.should eq "ruby19"
+  end
+
   describe "#collaborators" do
     before :each do
       @user_a = create_user('a@foo.com', 'a')
