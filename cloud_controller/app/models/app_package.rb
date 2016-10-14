@@ -206,6 +206,8 @@ class AppPackage
   # apps directory e.g. '../../foo' or a symlink pointing outside working_dir
   # should raise an exception.
   def resolve_path(working_dir, tainted_path)
+    # http://help.ironfoundry.org/entries/20934427-local-vcap-and-dea
+    # File.realdirpath may fail due to race condition between unpack_upload and this method (theorized)
     expanded_dir  = File.realdirpath(working_dir)
     expanded_path = File.realdirpath(tainted_path, expanded_dir)
     pattern = "#{expanded_dir}/*"
@@ -213,6 +215,10 @@ class AppPackage
       raise ArgumentError, "Resource path sanity check failed #{pattern}:#{expanded_path}!!!!"
     end
     expanded_path
+  rescue => e
+    CloudController.logger.error("resolve_path failed working_dir: '#{working_dir}', tainted_path: '#{tainted_path}'")
+    CloudController.logger.error(e)
+    File.join(working_dir, tainted_path)
   end
 
   # Do resource pool synch, needs to be called with a Fiber context
