@@ -26,8 +26,9 @@ class Service < ActiveRecord::Base
   # optional alias hash for service versions
   # for example {"current" => "1.0", "next" => "2.0"}
   serialize :version_aliases
+  serialize :plan_descriptions
 
-  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider, :supported_versions, :version_aliases, :default_plan
+  attr_accessible :label, :token, :url, :description, :info_url, :tags, :plans, :cf_plan_id, :plan_options, :binding_options, :active, :acls, :timeout, :provider, :supported_versions, :version_aliases, :default_plan, :plan_descriptions
 
   def set_default_values
     self.supported_versions ||= []
@@ -215,7 +216,8 @@ class Service < ActiveRecord::Base
     svc_offering[:provider]        = self.provider        if self.provider
     svc_offering[:supported_versions] = self.supported_versions if self.supported_versions
     svc_offering[:version_aliases]    = self.version_aliases    if self.version_aliases
-    svc_offering[:default_plan]    = self.default_plan    if self.default_plan
+    svc_offering[:default_plan]       = self.default_plan       if self.default_plan
+    svc_offering[:plan_descriptions]  = self.plan_descriptions  if self.plan_descriptions
     return svc_offering
   end
 
