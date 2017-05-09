@@ -52,6 +52,28 @@ describe ServicesController do
         response.status.should == 200
       end
 
+      it 'should create service offerings with plan descriptions' do
+        AppConfig[:builtin_services][:foo] = {:token => 'foobar'}
+        plans = ['plan1', 'plan2']
+        plan_descriptions = plans.map { |p| { p => "#{p}-description" } }
+        post_msg :create do
+          VCAP::Services::Api::ServiceOfferingRequest.new(
+            :label => 'foo-bar',
+            :supported_versions => [],
+            :version_aliases => {},
+            :url   => 'http://www.google.com',
+            :plans => plans,
+            :plan_descriptions => plan_descriptions.reduce(&:merge))
+        end
+        response.status.should == 200
+        svc = Service.find_by_label('foo-bar')
+        svc.should_not be_nil
+        svc.plans.should_not be_nil
+        svc.plan_descriptions.should_not be_nil
+        svc.plans.all? { |p| svc.plan_descriptions[p].should == "#{p}-description" }
+        AppConfig[:builtin_services].delete(:foo)
+      end
+
       it 'should create service offerings for single proxied service' do
         request.env['HTTP_X_VCAP_SERVICE_TOKEN'] = 'broker'
         AppConfig[:service_proxy] = {:token => ['broker']}

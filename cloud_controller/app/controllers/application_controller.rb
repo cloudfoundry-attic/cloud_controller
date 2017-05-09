@@ -7,9 +7,11 @@ class ApplicationController < ActionController::Base
 
   def process_action(method_name, *args)
 
-    unless VCAP::Component.varz.nil?
+    begin
       VCAP::Component.varz[:requests] += 1
       VCAP::Component.varz[:pending_requests] += 1
+    rescue
+      # spec defers varz initialization
     end
 
     @error = nil
@@ -27,7 +29,7 @@ class ApplicationController < ActionController::Base
     ret
 
   ensure
-    VCAP::Component.varz[:pending_requests] -= 1 unless VCAP::Component.varz.nil?
+    VCAP::Component.varz[:pending_requests] -= 1 rescue nil # spec defers varz initialization
   end
 
   protected
